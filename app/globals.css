@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Kairo — "Midnight" design tokens. See brand.md. */
+@theme {
+  --color-bg: #0b0a10;
+  --color-surface: #15141c;
+  --color-surface-2: #1e1c28;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-fg: #f2f1f6;
+  --color-muted: #a3a1b0;
+  --color-faint: #6f6d7e;
+  --color-accent: #9d8cff;
+  --color-accent-strong: #7b68ee;
+  --color-success: #43d197;
+  --color-danger: #ff5d63;
+
+  --radius-card: 20px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  }
+
+  /* Quiet, on-brand scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-surface-2) transparent;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Soft accent glow used behind the balance figure. Subtle by design. */
+.kairo-glow {
+  background: radial-gradient(
+    60% 80% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    transparent 70%
+  );
 }
