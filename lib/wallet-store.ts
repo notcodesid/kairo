@@ -140,6 +140,16 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       // user just clicked Connect); returns the shielded balance on success.
       const { support, shielded } = await probeStrk20(wa);
       set({ strk20: support, shielded });
+
+      // Reflect wallet-side account/chain changes in the UI without a reload.
+      unsubscribeWalletEvents?.();
+      unsubscribeWalletEvents = walletV6.subscribeWalletEvent(wallet, (change) => {
+        if (change.accounts && change.accounts.length === 0) {
+          get().disconnect();
+          return;
+        }
+        void get().refresh();
+      });
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
       set({
@@ -215,7 +225,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({ strk20: support, shielded });
   },
 
-  disconnect: () =>
+  disconnect: () => {
+    unsubscribeWalletEvents?.();
+    unsubscribeWalletEvents = undefined;
     set({
       status: "idle",
       account: undefined,
@@ -228,8 +240,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       shielded: undefined,
       publicStrk: undefined,
       error: undefined,
-    }),
+    });
+  },
 }));
+
+/** Unsubscribe from the connected wallet's change events, if any. */
+let unsubscribeWalletEvents: (() => void) | undefined;
 
 /**
  * Start wallet-standard discovery once on the client. Wallets register
