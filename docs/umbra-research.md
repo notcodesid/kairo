@@ -1,6 +1,6 @@
-# Umbra Privacy → Veil: research & design brief
+# Umbra Privacy → Kairo: research & design brief
 
-Internal research doc for **Veil** (our STRK20 privacy wallet). Based on a multi-agent
+Internal research doc for **Kairo** (our STRK20 privacy wallet). Based on a multi-agent
 deep-dive into **Umbra Privacy** (Solana), the product the STRK20 "Privacy Wallet" RFP
 tells us to model. Sources are Umbra's own docs/SDK, marketing, app store listings,
 first-hand app inspection, and third-party coverage (Aug 2026).
@@ -78,10 +78,10 @@ relayer fee currently **0**, plus a one-time SOL rent fee per note.
 
 ---
 
-## PART B — Veil design brief (what we actually build)
+## PART B — Kairo design brief (what we actually build)
 
 ### Mapping Umbra → STRK20
-| Umbra (Solana) | Veil (STRK20) |
+| Umbra (Solana) | Kairo (STRK20) |
 |---|---|
 | Sign one message → derive keys, no backup | Sign once → silently register the **viewing key** |
 | ETA (encrypted balance) | **Shielded balance** (sum of your STRK20 notes) |

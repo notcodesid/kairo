@@ -371,7 +371,7 @@ mandatory viewing keys, an FPI-operated auditor master key). It has the privacy 
 | `send` → Announcement event | Pool **`Deposit(user_addr, token, amount)`** / `CreateEncNote` | Eligibility checked against `user_addr` in the event, not tx sender |
 | `scan` (client-side, O(n)) | **Discovery service run against viewing keys** (RFP) | Umbra keeps it client-side + indexer; RFP suggests a hosted discovery service |
 | `withdrawTokenOnBehalf` (signature relayer) | **Paymaster-sponsored withdrawal** (SNIP-9 + SNIP-29) | Starknet-native, strictly simpler & more capable (below) |
-| Rotating first-party relayer | STRK20 **rotating shared relayers** | tx sender is a relayer w/ huge nonce; your address absent from calldata |
+| Rotating first-party relayer | **AVNU paymaster forwarder** (`0x0127021a…584f`) | on-chain sender is a rotating whitelisted relayer; your address absent from calldata — verify sends via pool events (`Deposit(user_addr,…)`), never via tx sender |
 
 ### 11.3 Gasless spend: Starknet is *easier* than Umbra
 Umbra hand-rolls a signature-relayer in Solidity because EVM EOAs can't be moved by third parties.
