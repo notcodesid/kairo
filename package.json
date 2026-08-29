@@ -1,8 +1,8 @@
 {
-  "name": "veil",
+  "name": "kairo",
   "version": "0.1.0",
   "private": true,
-  "description": "Veil — an Umbra-style privacy wallet for Starknet, built on the STRK20 privacy pool.",
+  "description": "Kairo — an Umbra-style privacy wallet for Starknet, built on the STRK20 privacy pool.",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -15,6 +15,7 @@
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-qr-code": "^2.2.0",
     "starknet": "10.4.0",
     "zustand": "^5.0.9"
   },
