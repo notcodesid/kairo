@@ -1,69 +1,412 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Check,
+  Copy,
+  Shield,
+  ShieldPlus,
+  Spinner,
+  KairoMark,
+} from "@/components/icons";
+import { MOCK_WALLET, type ActivityItem } from "@/lib/mock";
+import { formatAmount, splitAmount, truncateAddress } from "@/lib/format";
+import {
+  startWalletDiscovery,
+  useWalletStore,
+} from "@/lib/wallet-store";
+import { POOL_FEE_STRK, canReceivePrivately } from "@/lib/chain";
+import { ReceiveScreen, SendScreen, ShieldScreen } from "@/components/screens";
+import { StatusNotice } from "@/components/status-notice";
 
 export default function Home() {
+  const status = useWalletStore((s) => s.status);
+  // ?demo=1 shows the wallet view with mock data — for UI work and the demo
+  // video, without a wallet round-trip. Set in an effect to stay SSR-safe.
+  const [demo, setDemo] = useState(false);
+
+  useEffect(() => {
+    setDemo(new URLSearchParams(window.location.search).has("demo"));
+    // Wallet-standard discovery: wallets announce themselves after load.
+    return startWalletDiscovery();
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col px-5">
+      {status === "connected" || demo ? <Wallet demo={demo} /> : <Connect />}
+    </main>
+  );
+}
+
+/* ---------------------------------------------------------------- Connect */
+
+const READY_INSTALL_URL = "https://www.ready.co/download";
+
+function Connect() {
+  const { wallets, status, error, connect } = useWalletStore();
+  const connecting = status === "connecting";
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-10 py-16 text-center">
+      <div className="flex flex-col items-center gap-5">
+        <span className="flex size-14 items-center justify-center rounded-2xl bg-surface text-accent ring-1 ring-border">
+          <KairoMark size={26} />
+        </span>
+        <div className="space-y-3">
+          <h1 className="text-2xl font-semibold tracking-tight">Kairo</h1>
+          <p className="max-w-[18rem] text-[15px] leading-6 text-muted">
+            Receive, hold, and send privately on Starknet. The cryptography
+            stays hidden.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      <div className="flex w-full flex-col items-center gap-4">
+        {wallets.length > 0 ? (
+          <ul className="flex w-full flex-col gap-2.5">
+            {wallets.map((w) => (
+              <li key={w.name}>
+                <button
+                  type="button"
+                  onClick={() => connect(w)}
+                  disabled={connecting}
+                  className="flex h-13 w-full items-center gap-3 rounded-2xl bg-surface px-4 text-left ring-1 ring-border transition-colors duration-150 hover:bg-surface-2 hover:ring-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
+                >
+                  {w.icon ? (
+                    // Wallet icons are data: URIs from wallet-standard.
+                    <Image
+                      src={w.icon}
+                      alt=""
+                      width={28}
+                      height={28}
+                      className="size-7 rounded-lg"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-faint ring-1 ring-border">
+                      <Shield size={14} />
+                    </span>
+                  )}
+                  <span className="flex-1 text-[15px] font-medium">
+                    {w.name}
+                  </span>
+                  {connecting ? (
+                    <Spinner size={16} className="text-faint" />
+                  ) : (
+                    <span className="text-[13px] text-faint">Connect</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <NoWallet />
+        )}
+
+        {status === "error" && error && (
+          <p role="alert" className="max-w-[20rem] text-[13px] leading-5 text-danger">
+            {error}
+          </p>
+        )}
+
+        <p className="text-xs text-faint">
+          Private by default · powered by the STRK20 pool
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function NoWallet() {
+  return (
+    <div className="flex w-full flex-col items-center gap-3 rounded-card bg-surface/50 px-6 py-7 ring-1 ring-border">
+      <p className="text-[14px] font-medium">No Starknet wallet found</p>
+      <p className="max-w-[17rem] text-[13px] leading-5 text-faint">
+        Kairo needs a wallet that supports private balances. Install Ready, then
+        reload this page.
+      </p>
+      <a
+        href={READY_INSTALL_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 flex h-10 items-center rounded-full bg-accent px-5 text-[14px] font-semibold text-bg transition-colors duration-150 hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+      >
+        Get Ready wallet
+      </a>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- Wallet */
+
+type View = "home" | "receive" | "send" | "shield";
+
+function Wallet({ demo = false }: { demo?: boolean }) {
+  const {
+    address,
+    walletName,
+    isMainnet,
+    strk20,
+    disconnect,
+    shielded: realShielded,
+    publicStrk: realPublic,
+    sendPrivate,
+    shield,
+    unshield,
+  } = useWalletStore();
+  const [view, setView] = useState<View>("home");
+
+  // Real data when actually connected; mock only in ?demo=1.
+  // TODO(wiring): real activity comes from pool events; real pending needs
+  // note-level maturity data the Wallet API doesn't expose yet.
+  const real = !demo;
+  const shielded = real
+    ? strk20 === "supported"
+      ? (realShielded ?? 0)
+      : 0
+    : MOCK_WALLET.shielded;
+  const pending = real ? 0 : MOCK_WALLET.pending;
+  const publicStrk = real ? (realPublic ?? 0) : MOCK_WALLET.publicStrk;
+  const activity = real ? [] : MOCK_WALLET.activity;
+  const token = MOCK_WALLET.token;
+  const { int, frac } = splitAmount(shielded);
+
+  const displayAddress = demo ? MOCK_WALLET.address : (address ?? "");
+  const back = () => setView("home");
+
+  if (view === "receive") {
+    return <ReceiveScreen address={displayAddress} onBack={back} />;
+  }
+  if (view === "send") {
+    return (
+      <SendScreen
+        spendable={shielded}
+        token={token}
+        feeStrk={POOL_FEE_STRK}
+        onBack={back}
+        onSubmit={real ? sendPrivate : undefined}
+        checkRecipient={real ? canReceivePrivately : undefined}
+      />
+    );
+  }
+  if (view === "shield") {
+    return (
+      <ShieldScreen
+        publicBalance={publicStrk}
+        shieldedBalance={shielded}
+        token={token}
+        feeStrk={POOL_FEE_STRK}
+        onBack={back}
+        onShield={real ? shield : undefined}
+        onUnshield={real ? unshield : undefined}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col gap-7 py-6">
+      <Header address={displayAddress} onDisconnect={disconnect} />
+
+      {!demo && (!isMainnet || strk20 !== "supported") && (
+        <StatusNotice isMainnet={isMainnet} strk20={strk20} walletName={walletName} />
+      )}
+
+      {/* Balance */}
+      <section className="relative overflow-hidden rounded-card bg-surface px-6 pb-7 pt-6 ring-1 ring-border">
+        <div className="kairo-glow pointer-events-none absolute inset-x-0 top-0 h-28" />
+        <div className="relative flex flex-col gap-3">
+          <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted">
+            <Shield size={14} className="text-accent" />
+            Shielded balance
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-mono text-[44px] font-semibold leading-none tracking-tight tabular-nums">
+              {int}
+              {frac && <span className="text-muted">.{frac}</span>}
+            </span>
+            <span className="text-lg font-medium text-muted">{token}</span>
+          </div>
+          {pending > 0 && (
+            <p className="flex items-center gap-2 text-[13px] text-muted">
+              <span
+                aria-hidden="true"
+                className="size-1.5 rounded-full bg-success motion-safe:animate-pulse"
+              />
+              <span className="font-mono tabular-nums">
+                +{formatAmount(pending)} {token}
+              </span>
+              arriving · spendable in ~5 min
+            </p>
+          )}
         </div>
-      </main>
+      </section>
+
+      {/* Actions */}
+      <section className="grid grid-cols-3 gap-3">
+        <Action
+          label="Receive"
+          icon={<ArrowDownLeft size={20} />}
+          onClick={() => setView("receive")}
+        />
+        <Action
+          label="Send"
+          icon={<ArrowUpRight size={20} />}
+          onClick={() => setView("send")}
+        />
+        <Action
+          label="Shield"
+          icon={<ShieldPlus size={20} />}
+          onClick={() => setView("shield")}
+        />
+      </section>
+
+      {/* Activity */}
+      <section className="flex flex-1 flex-col gap-3">
+        <h2 className="px-1 text-[13px] font-medium text-muted">Activity</h2>
+        {activity.length > 0 ? (
+          <ul className="flex flex-col gap-1">
+            {activity.map((item) => (
+              <ActivityRow key={item.id} item={item} />
+            ))}
+          </ul>
+        ) : (
+          <EmptyActivity />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Header({
+  address,
+  onDisconnect,
+}: {
+  address: string;
+  onDisconnect: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard?.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard unavailable — no-op */
+    }
+  }
+
+  return (
+    <header className="flex items-center justify-between gap-2">
+      <span className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+        <KairoMark size={20} className="text-accent" />
+        Kairo
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={copy}
+          className="flex h-9 items-center gap-2 rounded-full bg-surface px-3 font-mono text-[13px] text-muted ring-1 ring-border transition-colors duration-150 hover:text-fg hover:ring-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          aria-label={copied ? "Address copied" : "Copy your address"}
+        >
+          {truncateAddress(address)}
+          {copied ? (
+            <Check size={14} className="text-success" />
+          ) : (
+            <Copy size={14} />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onDisconnect}
+          className="flex h-9 items-center rounded-full px-3 text-[13px] text-faint transition-colors duration-150 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          Disconnect
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Action({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col items-center gap-2.5 rounded-2xl bg-surface py-4 ring-1 ring-border transition-colors duration-150 hover:bg-surface-2 hover:ring-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-accent ring-1 ring-border transition-colors duration-150 group-hover:bg-accent group-hover:text-bg">
+        {icon}
+      </span>
+      <span className="text-[13px] font-medium">{label}</span>
+    </button>
+  );
+}
+
+function ActivityRow({ item }: { item: ActivityItem }) {
+  const received = item.kind === "received" || item.kind === "unshield";
+  const meta = ACTIVITY_META[item.kind];
+  const { int, frac } = splitAmount(item.amount);
+
+  return (
+    <li>
+      <div className="flex items-center gap-3 rounded-2xl px-1.5 py-2.5 transition-colors duration-150 hover:bg-surface">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-muted ring-1 ring-border">
+          {meta.icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-medium">{meta.label}</p>
+          <p className="truncate text-[12px] text-faint">
+            {item.peer ? item.peer : item.at}
+            {item.peer && <span className="text-faint"> · {item.at}</span>}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 font-mono text-[14px] font-medium tabular-nums ${
+            received ? "text-success" : "text-fg"
+          }`}
+        >
+          {received ? "+" : "−"}
+          {int}
+          {frac && <span className="opacity-60">.{frac}</span>} {item.token}
+        </span>
+      </div>
+    </li>
+  );
+}
+
+const ACTIVITY_META: Record<
+  ActivityItem["kind"],
+  { label: string; icon: React.ReactNode }
+> = {
+  received: { label: "Received privately", icon: <ArrowDownLeft size={16} /> },
+  sent: { label: "Sent privately", icon: <ArrowUpRight size={16} /> },
+  shield: { label: "Shielded", icon: <ShieldPlus size={16} /> },
+  unshield: { label: "Unshielded", icon: <ArrowUpRight size={16} /> },
+};
+
+function EmptyActivity() {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-card bg-surface/50 px-6 py-10 text-center ring-1 ring-border">
+      <span className="flex size-11 items-center justify-center rounded-full bg-surface-2 text-faint ring-1 ring-border">
+        <Shield size={20} />
+      </span>
+      <p className="text-[14px] font-medium">No activity yet</p>
+      <p className="max-w-[15rem] text-[13px] leading-5 text-faint">
+        Share your receive address to get paid privately, or shield some STRK to
+        get started.
+      </p>
     </div>
   );
 }
