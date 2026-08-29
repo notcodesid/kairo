@@ -10,3 +10,13 @@ target/
 .DS_Store
 *.log
 .snfoundry_cache/
+
+# Local tooling and build artifacts
+.claude/
+tsconfig.tsbuildinfo
+
+# Internal reference / working docs — not part of the submission
+docs/
+UMBRA.md
+DAY0-CHECK.md
+brand.md
