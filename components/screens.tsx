@@ -136,9 +136,16 @@ function friendlyError(err: unknown): string {
 export function ReceiveScreen({
   address,
   onBack,
+  receivable,
 }: {
   address: string;
   onBack: () => void;
+  /**
+   * Whether this account can receive private payments yet — i.e. its viewing
+   * key is registered on the pool. `false` shows a setup-required state;
+   * `undefined` (unknown / check unavailable) fails open and shows the address.
+   */
+  receivable?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -150,6 +157,38 @@ export function ReceiveScreen({
     } catch {
       /* clipboard unavailable */
     }
+  }
+
+  // Not registered yet: the address exists but cannot receive private payments.
+  // Registration happens safely only inside Ready (it derives the viewing key
+  // from the account's raw key), so steer the user there — never an in-app
+  // register button, and don't surface an address that can't yet be paid.
+  if (receivable === false) {
+    return (
+      <div className="flex flex-1 flex-col gap-7 py-6">
+        <SubHeader title="Receive privately" onBack={onBack} />
+
+        <div className="flex flex-1 flex-col items-center justify-center gap-7 py-8 text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-surface text-accent ring-1 ring-border">
+            <Shield size={28} />
+          </span>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold tracking-tight">
+              Activate your receive address
+            </h2>
+            <p className="mx-auto max-w-[20rem] text-[14px] leading-6 text-muted">
+              Shield once in your Ready wallet to switch this on. That first
+              shield registers your private key inside your wallet — only your
+              wallet can do it, which is what keeps it secure.
+            </p>
+          </div>
+          <p className="mx-auto max-w-[20rem] text-[13px] leading-5 text-faint">
+            Once active, anyone can pay this address privately — the amount and
+            sender stay hidden on-chain.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
