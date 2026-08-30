@@ -20,16 +20,20 @@ import {
 } from "@/lib/wallet-store";
 import { POOL_FEE_STRK, canReceivePrivately } from "@/lib/chain";
 import { ReceiveScreen, SendScreen, ShieldScreen } from "@/components/screens";
-import { StatusNotice } from "@/components/status-notice";
+import { SetupCard, StatusNotice } from "@/components/status-notice";
+
+/** ?demo=1 → wallet view on mock data; ?demo=unregistered → first-use setup state. */
+type DemoMode = "" | "on" | "unregistered";
 
 export default function Home() {
   const status = useWalletStore((s) => s.status);
-  // ?demo=1 shows the wallet view with mock data — for UI work and the demo
-  // video, without a wallet round-trip. Set in an effect to stay SSR-safe.
-  const [demo, setDemo] = useState(false);
+  // Demo modes render without a wallet round-trip — for UI work and the demo
+  // video. Set in an effect to stay SSR-safe.
+  const [demo, setDemo] = useState<DemoMode>("");
 
   useEffect(() => {
-    setDemo(new URLSearchParams(window.location.search).has("demo"));
+    const v = new URLSearchParams(window.location.search).get("demo");
+    setDemo(v === null ? "" : v === "unregistered" ? "unregistered" : "on");
     // Wallet-standard discovery: wallets announce themselves after load.
     return startWalletDiscovery();
   }, []);
@@ -144,7 +148,7 @@ function NoWallet() {
 
 type View = "home" | "receive" | "send" | "shield";
 
-function Wallet({ demo = false }: { demo?: boolean }) {
+function Wallet({ demo = "" }: { demo?: DemoMode }) {
   const {
     address,
     walletName,
@@ -156,29 +160,54 @@ function Wallet({ demo = false }: { demo?: boolean }) {
     sendPrivate,
     shield,
     unshield,
+    refresh,
   } = useWalletStore();
   const [view, setView] = useState<View>("home");
 
-  // Real data when actually connected; mock only in ?demo=1.
+  // Real data when actually connected; mock only in demo modes.
   // TODO(wiring): real activity comes from pool events; real pending needs
   // note-level maturity data the Wallet API doesn't expose yet.
   const real = !demo;
+  const demoUnreg = demo === "unregistered";
   const shielded = real
     ? strk20 === "supported"
       ? (realShielded ?? 0)
       : 0
-    : MOCK_WALLET.shielded;
-  const pending = real ? 0 : MOCK_WALLET.pending;
+    : demoUnreg
+      ? 0
+      : MOCK_WALLET.shielded;
+  const pending = real || demoUnreg ? 0 : MOCK_WALLET.pending;
   const publicStrk = real ? (realPublic ?? 0) : MOCK_WALLET.publicStrk;
-  const activity = real ? [] : MOCK_WALLET.activity;
+  const activity = real || demoUnreg ? [] : MOCK_WALLET.activity;
   const token = MOCK_WALLET.token;
   const { int, frac } = splitAmount(shielded);
+
+  const showSetup =
+    demoUnreg || (real && isMainnet && strk20 === "unregistered");
+
+  // Own-address receivability — derived from the probe, no extra RPC needed.
+  const receivable =
+    demo === "on"
+      ? true
+      : demoUnreg
+        ? false
+        : strk20 === "supported"
+          ? true
+          : strk20 === "unregistered"
+            ? false
+            : undefined; // unknown → ReceiveScreen fails open
 
   const displayAddress = demo ? MOCK_WALLET.address : (address ?? "");
   const back = () => setView("home");
 
   if (view === "receive") {
-    return <ReceiveScreen address={displayAddress} onBack={back} />;
+    return (
+      <ReceiveScreen
+        address={displayAddress}
+        onBack={back}
+        receivable={receivable}
+      />
+    );
   }
   if (view === "send") {
     return (
@@ -210,8 +239,27 @@ function Wallet({ demo = false }: { demo?: boolean }) {
     <div className="flex flex-1 flex-col gap-7 py-6">
       <Header address={displayAddress} onDisconnect={disconnect} />
 
-      {!demo && (!isMainnet || strk20 !== "supported") && (
-        <StatusNotice isMainnet={isMainnet} strk20={strk20} walletName={walletName} />
+      {showSetup ? (
+        <SetupCard
+          walletName={walletName}
+          onCheck={
+            real
+              ? refresh
+              : async () => {
+                  // Demo: simulate the re-probe round-trip.
+                  await new Promise((r) => setTimeout(r, 900));
+                }
+          }
+        />
+      ) : (
+        real &&
+        (!isMainnet || strk20 !== "supported") && (
+          <StatusNotice
+            isMainnet={isMainnet}
+            strk20={strk20}
+            walletName={walletName}
+          />
+        )
       )}
 
       {/* Balance */}
