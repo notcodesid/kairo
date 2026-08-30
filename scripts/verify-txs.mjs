@@ -10,10 +10,17 @@
  */
 
 import { readFileSync } from "node:fs";
+import { hash } from "starknet";
 
 const RPC_URL = "https://rpc.starknet.lava.build";
 const POOL =
   0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812an;
+
+/** STRK20 pool events the judge looks for — labelled by selector. */
+const KNOWN_EVENTS = ["ViewingKeySet", "Deposit", "EncNoteCreated", "Withdrawal"];
+const EVENT_SELECTORS = new Map(
+  KNOWN_EVENTS.map((name) => [hash.getSelectorFromName(name), name]),
+);
 
 async function rpc(method, params) {
   const res = await fetch(RPC_URL, {
@@ -51,11 +58,23 @@ async function verify(hash) {
     return { hash, ok: false, reason: "no event from the STRK20 pool" };
   }
 
+  const counts = new Map();
+  for (const ev of poolEvents) {
+    const key = ev.keys?.[0] ?? "?";
+    const label = EVENT_SELECTORS.get(key) ?? `${key.slice(0, 10)}…`;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  const eventSummary = [...counts.entries()]
+    .map(([k, n]) => `${k}×${n}`)
+    .join(", ");
+
   return {
     hash,
     ok: true,
     finality: receipt.finality_status,
     poolEvents: poolEvents.length,
+    events: eventSummary,
+    viewingKeyRegistered: counts.has("ViewingKeySet"),
   };
 }
 
@@ -75,7 +94,10 @@ let failed = 0;
 for (const hash of hashes) {
   const r = await verify(hash);
   if (r.ok) {
-    console.log(`✅ ${hash}\n   SUCCEEDED · ${r.finality} · ${r.poolEvents} pool event(s)`);
+    console.log(`✅ ${hash}\n   SUCCEEDED · ${r.finality} · ${r.events}`);
+    if (r.viewingKeyRegistered) {
+      console.log("   viewing key registered ✓");
+    }
   } else {
     failed++;
     console.log(`❌ ${hash}\n   ${r.reason}`);
