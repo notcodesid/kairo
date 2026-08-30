@@ -40,6 +40,28 @@ send (private)   →  Withdraw / CreateEncNote through the pool, paymaster gas
 in / out         →  shield (public → private) · unshield (private → public)
 ```
 
+## Architecture: why the wallet route
+
+The [RFP](https://strk20.starknet.io/rfp/privacy-wallet)'s bullet list reads as
+"the app holds the viewing key, runs discovery, and builds pool actions
+itself" — the Privacy-SDK route. We deliberately built on the **STRK20 Wallet
+API** instead, where the Ready wallet holds the key and builds the proofs:
+
+| RFP requirement | How Kairo delivers it |
+|---|---|
+| Generate + register viewing keys on first use | Two implementations. **(a)** For wallet-held accounts: capability probe on connect + guided first-use registration — registration is immutable and Ready derives its own key, so a dapp must never register on a Ready user's behalf. **(b)** Literally, for accounts Kairo controls: [`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs) derives the canonical viewing key from the account's signature and registers it through the pool — proven on Sepolia: [`ViewingKeySet` tx `0x547902e6…3fa190`](https://sepolia.voyager.online/tx/0x547902e639fd45589a95f28748fc91dc051b44f487d3ece093c20eb023fa190). |
+| Publish a receive address anyone can pay to | Receive screen (QR + address), plus an on-chain pre-check that a send recipient can actually receive privately. |
+| Run discovery against the viewing key | Ready runs discovery; Kairo surfaces the results (`wallet_strk20Balances`). |
+| Sends as `Withdraw` / `CreateEncNote`, paymaster gas | Kairo's send/unshield produce exactly `EncNoteCreated` / `Withdrawal` pool events, relayer-submitted — the user's address never appears in calldata. |
+| Wallet-grade UI, crypto under the hood | The entire product. |
+
+Why not the SDK route? Its two required endpoints — the mainnet proving
+service and a hosted discovery indexer — are **not publicly available** (see
+the hackathon repo's open issues). The wallet route ships the same on-chain
+outcome on mainnet **today**, with a strictly smaller trust surface in the
+dapp: Kairo never touches keys, proofs, or user funds. The on-chain result is
+byte-for-byte what the RFP describes; only the executor differs.
+
 ## Built on
 
 - **STRK20 privacy pool** (mainnet): `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
