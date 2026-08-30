@@ -62,6 +62,22 @@ outcome on mainnet **today**, with a strictly smaller trust surface in the
 dapp: Kairo never touches keys, proofs, or user funds. The on-chain result is
 byte-for-byte what the RFP describes; only the executor differs.
 
+On **Sepolia**, both endpoints *are* public — so we proved the entire RFP
+loop end-to-end via the SDK route, every transaction built and submitted by
+Kairo's own code ([`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs)):
+
+| Flow | Sepolia tx |
+|---|---|
+| Register (`ViewingKeySet`) | [`0x547902e6…3fa190`](https://sepolia.voyager.online/tx/0x547902e639fd45589a95f28748fc91dc051b44f487d3ece093c20eb023fa190) |
+| Shield (`Deposit`) | [`0x379324ff…630993`](https://sepolia.voyager.online/tx/0x379324ff830a7857a5dd5e15bc250c8adacefd61bab98cdeee19f69c2630993) |
+| Private send (`CreateEncNote`) | [`0x2cab08aa…1efbc`](https://sepolia.voyager.online/tx/0x2cab08aa1535537cd40d05ca2ef735814788671266d3a3ce9a95a1a2b51efbc) |
+| Unshield (`Withdrawal`) | [`0x42439753…e4ebf`](https://sepolia.voyager.online/tx/0x42439753e2d8d097d032fa2b5d3ec34d0ef15e976e7a8ebde65af19f80e4ebf) |
+
+Discovery ran against our registered viewing key between each step, surfacing
+the encrypted notes (`open=false`) with coherent balances (100 → 90 STRK).
+Reproduce with `--generate` → register → `--deposit` → `--discover` → `--send`
+→ `--withdraw`.
+
 ## Built on
 
 - **STRK20 privacy pool** (mainnet): `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
@@ -81,9 +97,20 @@ byte-for-byte what the RFP describes; only the executor differs.
 
 - Next.js 16 (App Router) + React 19 + Tailwind v4
 - `starknet@10.4.0` + `@starknet-io/get-starknet-*` v6 + zustand
+- **Installable PWA** — manifest + icons; add to your phone's home screen for
+  the "mobile" half of the RFP (web + installable, one codebase)
 - Starknet mainnet — `CHAIN_ID = SN_MAIN`, keyless public RPC
   (`rpc.starknet.lava.build`) — no env vars needed; `npm i && npm run dev` just works
 - `?demo=1` renders the full UI on sample data (no wallet needed)
+
+## Verifying submission transactions
+
+`node scripts/verify-txs.mjs` checks the transactions in `strk20.json` the way a
+judge would: on mainnet, `SUCCEEDED`, and emitting a STRK20 pool event — now with
+labelled events, so a pass shows exactly what each tx did
+(`Deposit×1`, `EncNoteCreated×1`, `ViewingKeySet×1`, …). The RFP task-1 evidence
+(a throwaway Sepolia registration) can be checked with
+`node scripts/verify-txs.mjs --sepolia <hash>`.
 
 ## Status
 
