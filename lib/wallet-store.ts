@@ -139,6 +139,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       // Probe STRK20 support — the answer drives the UI. User-initiated (the
       // user just clicked Connect); returns the shielded balance on success.
       const { support, shielded } = await probeStrk20(wa);
+      console.info(
+        `[kairo] wallet=${wallet.name} chain=${chainId} strk20=${support}` +
+          (shielded !== undefined ? ` shielded=${shielded}` : ""),
+      );
       set({ strk20: support, shielded });
 
       // Reflect wallet-side account/chain changes in the UI without a reload.
