@@ -7,14 +7,19 @@
  * Usage:
  *   node scripts/verify-txs.mjs            # checks strk20.json
  *   node scripts/verify-txs.mjs 0xabc…     # checks the given hash(es)
+ *   node scripts/verify-txs.mjs --sepolia 0xabc…  # checks Sepolia (throwaway evidence)
  */
 
 import { readFileSync } from "node:fs";
 import { hash } from "starknet";
 
-const RPC_URL = "https://rpc.starknet.lava.build";
-const POOL =
-  0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812an;
+const SEPOLIA = process.argv.includes("--sepolia");
+const RPC_URL = SEPOLIA
+  ? "https://starknet-sepolia.drpc.org"
+  : "https://rpc.starknet.lava.build";
+const POOL = SEPOLIA
+  ? 0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91n
+  : 0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812an;
 
 /** STRK20 pool events the judge looks for — labelled by selector. */
 const KNOWN_EVENTS = ["ViewingKeySet", "Deposit", "EncNoteCreated", "Withdrawal"];
@@ -78,7 +83,7 @@ async function verify(hash) {
   };
 }
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter((a) => a !== "--sepolia");
 let hashes = args;
 if (hashes.length === 0) {
   const json = JSON.parse(readFileSync(new URL("../strk20.json", import.meta.url)));
