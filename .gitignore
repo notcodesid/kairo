@@ -20,3 +20,6 @@ docs/
 UMBRA.md
 DAY0-CHECK.md
 brand.md
+
+# Throwaway testnet key material — never commit
+.sepolia-throwaway.json
