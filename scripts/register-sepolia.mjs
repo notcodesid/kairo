@@ -294,8 +294,193 @@ async function register() {
     : "\n❌ Tx accepted but get_public_key is still 0 — investigate.");
 }
 
-const mode = process.argv.includes("--generate") ? generate : register;
+/* ---------------- shared setup for post-registration phases ---------------- */
+
+function loadAccount() {
+  const { privateKey, publicKey, address } = JSON.parse(
+    readFileSync(KEYFILE, "utf8"),
+  );
+  const account = new Account({
+    provider,
+    address,
+    signer: privateKey,
+    cairoVersion: "1",
+  });
+  return { privateKey, publicKey, address, account };
+}
+
+function makeTransfers(account, privateKey) {
+  const chainId = constants.StarknetChainId.SN_SEPOLIA;
+  return createPrivateTransfers({
+    account,
+    viewingKeyProvider: {
+      getViewingKey: async () => deriveViewingKey(privateKey, chainId, POOL),
+    },
+    provingProvider: { url: PROVER_URL, chainId },
+    discoveryProvider: { url: DISCOVERY_URL },
+    poolContractAddress: POOL,
+  });
+}
+
+const u256of = (res) =>
+  BigInt(res[0] ?? "0") + (res[1] !== undefined ? BigInt(res[1]) << 128n : 0n);
+
+async function ensureAllowance(account, address, needed) {
+  const allowance = u256of(
+    await provider.callContract({
+      contractAddress: STRK,
+      entrypoint: "allowance",
+      calldata: [address, POOL],
+    }),
+  );
+  if (allowance >= needed) return console.log("Allowance sufficient.");
+  console.log(`Approving pool for ${Number(needed / 10n ** 12n) / 1e6} STRK…`);
+  const ap = await account.execute(
+    {
+      contractAddress: STRK,
+      entrypoint: "approve",
+      calldata: [POOL, needed.toString(), "0"],
+    },
+    { tip: 0n },
+  );
+  await provider.waitForTransaction(ap.transaction_hash);
+  console.log(`Approved: ${ap.transaction_hash}`);
+}
+
+async function submit(account, address, callAndProof, label) {
+  const proofDetails = callAndProof.proof?.proofFacts?.length
+    ? { proofFacts: callAndProof.proof.proofFacts, proof: callAndProof.proof.data }
+    : {};
+  const nonce = await provider.getNonceForAddress(address);
+  const tx = await account.execute(callAndProof.call, {
+    tip: 0n,
+    nonce,
+    ...proofDetails,
+  });
+  console.log(`${label} tx: ${tx.transaction_hash}`);
+  const receipt = await provider.waitForTransaction(tx.transaction_hash);
+  const poolEvents = (receipt.events ?? []).filter((e) => {
+    try {
+      return BigInt(e.from_address) === BigInt(POOL);
+    } catch {
+      return false;
+    }
+  });
+  console.log(
+    `Status: ${receipt.execution_status ?? "?"} · pool events: ${poolEvents.length}`,
+  );
+  return tx.transaction_hash;
+}
+
+/** SHIELD: deposit 100 STRK into the pool (RFP "shield" via the SDK route). */
+async function deposit() {
+  const { privateKey, address, account } = loadAccount();
+  console.log(`Throwaway: ${address}`);
+  const AMOUNT = 100n * 10n ** 18n;
+
+  const fee = u256of(
+    await provider.callContract({
+      contractAddress: POOL,
+      entrypoint: "get_fee_amount",
+      calldata: [],
+    }),
+  );
+  await ensureAllowance(account, address, AMOUNT + fee * 5n);
+
+  const transfers = makeTransfers(account, privateKey);
+  const provingBlockId = (await provider.getBlockNumber()) - 10;
+  console.log(`Building deposit (provingBlockId=${provingBlockId})…`);
+  const { callAndProof } = await transfers
+    .build({ autoSetup: true })
+    .with(STRK, (t) => t.deposit({ amount: AMOUNT }))
+    .surplusTo(address)
+    .execute({ provingBlockId });
+  await submit(account, address, callAndProof, "Deposit (shield)");
+  console.log("Note matures in ~10 blocks. Then run --discover.");
+}
+
+/** DISCOVERY: surface our notes via the public discovery service (RFP bullet 3). */
+async function discover() {
+  const { privateKey, address, account } = loadAccount();
+  console.log(`Throwaway: ${address}`);
+  const transfers = makeTransfers(account, privateKey);
+  const { notes, timestamp } = await transfers.discoverNotes({
+    tokens: [BigInt(STRK)],
+  });
+  const list = notes.get(BigInt(STRK)) ?? [];
+  console.log(`Discovery at block ${JSON.stringify(timestamp)} — ${list.length} note(s):`);
+  let total = 0n;
+  for (const n of list) {
+    total += n.amount;
+    console.log(
+      `  note id=${n.id} amount=${Number(n.amount / 10n ** 12n) / 1e6} STRK created=${n.created ?? "?"} open=${n.open ?? false}`,
+    );
+  }
+  console.log(`Shielded balance: ${Number(total / 10n ** 12n) / 1e6} STRK`);
+}
+
+/** Common tail for spends: fetch notes, wait for maturity, run the builder. */
+async function spend(kind, AMOUNT) {
+  const { privateKey, address, account } = loadAccount();
+  console.log(`Throwaway: ${address}`);
+  const fee = u256of(
+    await provider.callContract({
+      contractAddress: POOL,
+      entrypoint: "get_fee_amount",
+      calldata: [],
+    }),
+  );
+  await ensureAllowance(account, address, fee * 5n);
+
+  const transfers = makeTransfers(account, privateKey);
+  const { notes } = await transfers.discoverNotes({ tokens: [BigInt(STRK)] });
+  const list = notes.get(BigInt(STRK)) ?? [];
+  if (list.length === 0) throw new Error("No notes to spend — run --deposit first.");
+  const note = list.reduce((a, b) => (a.amount >= b.amount ? a : b));
+  console.log(`Spending from note ${note.id} (${Number(note.amount / 10n ** 12n) / 1e6} STRK, created ${note.created})`);
+
+  // Note must be mature (10 blocks) AT the prover's snapshot (latest - 10).
+  const created = Number(note.created ?? 0);
+  let latest = await provider.getBlockNumber();
+  while (latest - 10 < created + 10) {
+    console.log(`Waiting for note maturity (block ${latest}, need ≥ ${created + 20})…`);
+    await new Promise((r) => setTimeout(r, 10_000));
+    latest = await provider.getBlockNumber();
+  }
+  const provingBlockId = latest - 10;
+  console.log(`Building ${kind} (provingBlockId=${provingBlockId})…`);
+
+  const { callAndProof } = await transfers
+    .build({ autoSetup: true })
+    .surplusTo(address)
+    .with(STRK, (t) =>
+      kind === "transfer"
+        ? t.inputs(note).transfer({ recipient: address, amount: AMOUNT })
+        : t.inputs(note).withdraw({ amount: AMOUNT, recipient: address }),
+    )
+    .execute({ provingBlockId });
+  await submit(
+    account,
+    address,
+    callAndProof,
+    kind === "transfer" ? "Private transfer (CreateEncNote)" : "Withdraw (unshield)",
+  );
+}
+
+const argv = process.argv;
+const mode = argv.includes("--generate")
+  ? generate
+  : argv.includes("--deposit")
+    ? deposit
+    : argv.includes("--discover")
+      ? discover
+      : argv.includes("--send")
+        ? () => spend("transfer", 25n * 10n ** 18n)
+        : argv.includes("--withdraw")
+          ? () => spend("withdraw", 10n * 10n ** 18n)
+          : register;
 mode().catch((e) => {
-  console.error("FAILED:", e?.message ?? e);
+  const msg = String(e?.message ?? e);
+  console.error("FAILED:", msg.length > 1500 ? msg.slice(0, 700) + " … " + msg.slice(-500) : msg);
   process.exit(1);
 });

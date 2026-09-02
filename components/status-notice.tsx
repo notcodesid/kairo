@@ -5,17 +5,13 @@ import { Check, Shield, Spinner } from "@/components/icons";
 import type { Strk20Support } from "@/lib/wallet-store";
 
 /**
- * First-use onboarding for an unregistered user. A dapp cannot generate or
- * register the viewing key itself — only the wallet can, during its own first
- * shield — so Kairo's implementation of "register on first use" is detection
- * (the probe) + this guided flow + re-probe confirmation.
+ * First-use onboarding for an unregistered user.
  */
 export function SetupCard({
   walletName = "Ready",
   onCheck,
 }: {
   walletName?: string;
-  /** Re-run the probe. Resolves when state is refreshed. */
   onCheck: () => Promise<void>;
 }) {
   const [checking, setChecking] = useState(false);
@@ -32,57 +28,58 @@ export function SetupCard({
   }
 
   const steps = [
-    `Open the ${walletName} extension`,
-    "Shield any amount there (10+ STRK covers the fee)",
-    "That first shield creates and registers your private viewing key",
+    `Open your ${walletName} wallet extension`,
+    "Perform your first Shield deposit (covers the STRK20 protocol fee)",
+    "That initial shield creates and immutably registers your viewing key on-chain",
   ];
 
   return (
-    <section className="flex flex-col gap-4 rounded-card bg-surface px-5 py-5 ring-1 ring-border">
-      <div className="flex items-center gap-2.5">
-        <span className="flex size-9 items-center justify-center rounded-full bg-surface-2 text-accent ring-1 ring-border">
-          <Shield size={17} />
+    <section className="overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <Shield size={20} />
         </span>
         <div>
-          <h2 className="text-[15px] font-semibold">Turn on private balances</h2>
-          <p className="text-[12px] text-faint">One-time setup, done inside {walletName}</p>
+          <h2 className="text-[16px] font-bold text-fg">Activate Private Balances</h2>
+          <p className="text-[12px] text-faint">One-time cryptographic viewing key registration</p>
         </div>
       </div>
 
-      <ol className="flex flex-col gap-2.5">
+      <ol className="mt-5 space-y-3">
         {steps.map((step, i) => (
-          <li key={step} className="flex items-start gap-2.5 text-[13px] leading-5 text-muted">
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] text-accent ring-1 ring-border">
+          <li key={step} className="flex items-start gap-3 text-[13px] leading-relaxed text-muted">
+            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] font-semibold text-accent ring-1 ring-border">
               {i + 1}
             </span>
-            {step}
+            <span>{step}</span>
           </li>
         ))}
       </ol>
 
-      <button
-        type="button"
-        onClick={check}
-        disabled={checking}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-accent text-[14px] font-semibold text-bg transition-colors duration-150 hover:bg-accent-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-60"
-      >
-        {checking ? (
-          <>
-            <Spinner size={16} /> Checking…
-          </>
-        ) : (
-          <>
-            <Check size={16} /> I've shielded — check again
-          </>
-        )}
-      </button>
+      <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+        <button
+          type="button"
+          onClick={check}
+          disabled={checking}
+          className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-accent px-6 text-[14px] font-semibold text-bg transition-all hover:bg-accent-strong hover:shadow-[0_0_20px_rgba(157,140,255,0.3)] disabled:opacity-60"
+        >
+          {checking ? (
+            <>
+              <Spinner size={16} /> Verifying on-chain…
+            </>
+          ) : (
+            <>
+              <Check size={16} /> I&apos;ve Shielded — Verify Registration
+            </>
+          )}
+        </button>
 
-      {checkedOnce && !checking && (
-        <p role="status" className="text-center text-[12px] leading-5 text-faint">
-          Not seeing it yet? The registration can take a minute to confirm —
-          try again shortly.
-        </p>
-      )}
+        {checkedOnce && !checking && (
+          <p role="status" className="text-[12px] text-faint">
+            Registration may take ~1 minute to finalize on Voyager.
+          </p>
+        )}
+      </div>
     </section>
   );
 }
@@ -100,45 +97,47 @@ export function StatusNotice({
   let tone: "info" | "setup" | "problem" = "problem";
 
   if (!isMainnet) {
-    // Show the probe result even on testnet — it tells the user (and us)
-    // whether this wallet exposes the STRK20 API on this network at all.
     if (strk20 === "supported" || strk20 === "unregistered") {
       tone = "setup";
       text =
-        "Testnet detected — private balances work here. Switch to Starknet Mainnet for real use.";
+        "Testnet connected — private balances work here. Switch to Starknet Mainnet for live production use.";
     } else if (strk20 === "unknown") {
       tone = "info";
-      text = "Testnet detected — checking private-balance support…";
+      text = "Checking private-balance support…";
     } else {
       text =
         "Testnet detected — this wallet only supports private balances on Starknet Mainnet. Switch networks in the wallet to continue.";
     }
   } else if (strk20 === "unknown") {
     tone = "info";
-    text = "Checking private-balance support…";
+    text = "Checking STRK20 viewing key support…";
   } else if (strk20 === "unregistered") {
-    // There is no dapp-side register call — the wallet registers the viewing
-    // key on the user's first in-wallet shield.
     tone = "setup";
-    text = `One-time setup: open ${walletName ?? "Ready"} and shield any amount — that turns on your private balance. Then come back here.`;
+    text = `One-time setup: open ${walletName ?? "Ready"} and shield any amount to activate your viewing key.`;
   } else {
-    text = `${walletName ?? "This wallet"} doesn't support private balances yet. Install Ready to go private.`;
+    text = `${walletName ?? "This wallet"} does not support STRK20 private balances yet. Please use Ready wallet.`;
   }
 
   return (
-    <p
+    <div
       role="status"
-      className="flex items-center gap-2.5 rounded-2xl bg-surface px-4 py-3 text-[13px] leading-5 text-muted ring-1 ring-border"
+      className={`flex items-center gap-3 rounded-2xl p-4 text-[13px] leading-relaxed ring-1 backdrop-blur-md ${
+        tone === "problem"
+          ? "bg-danger/10 text-danger ring-danger/25"
+          : tone === "setup"
+            ? "bg-accent/10 text-fg ring-accent/25"
+            : "bg-surface/80 text-muted ring-border"
+      }`}
     >
       {tone === "info" ? (
-        <Spinner size={14} className="shrink-0 text-faint" />
+        <Spinner size={16} className="shrink-0 text-faint" />
       ) : (
         <Shield
-          size={14}
+          size={16}
           className={`shrink-0 ${tone === "setup" ? "text-accent" : "text-danger"}`}
         />
       )}
-      {text}
-    </p>
+      <span>{text}</span>
+    </div>
   );
 }

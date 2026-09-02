@@ -1,21 +1,28 @@
 @import "tailwindcss";
 
-/* Kairo — "Midnight" design tokens. See brand.md. */
+/* Kairo — Umbra Privacy Design Tokens */
 @theme {
-  --color-bg: #0b0a10;
-  --color-surface: #15141c;
-  --color-surface-2: #1e1c28;
+  --color-bg: #07070b;
+  --color-bg-subtle: #0d0c14;
+  --color-surface: #13121b;
+  --color-surface-2: #1b1926;
+  --color-surface-glass: rgba(19, 18, 27, 0.7);
   --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.14);
-  --color-fg: #f2f1f6;
-  --color-muted: #a3a1b0;
-  --color-faint: #6f6d7e;
+  --color-border-strong: rgba(255, 255, 255, 0.16);
+  --color-border-accent: rgba(157, 140, 255, 0.3);
+  --color-fg: #f3f2f8;
+  --color-muted: #9d9aa8;
+  --color-faint: #676474;
   --color-accent: #9d8cff;
   --color-accent-strong: #7b68ee;
-  --color-success: #43d197;
-  --color-danger: #ff5d63;
+  --color-accent-glow: rgba(157, 140, 255, 0.15);
+  --color-success: #34d399;
+  --color-success-bg: rgba(52, 211, 153, 0.1);
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
 
-  --radius-card: 20px;
+  --radius-card: 22px;
+  --radius-card-sm: 16px;
 }
 
 @theme inline {
@@ -35,32 +42,61 @@
   html,
   body {
     height: 100%;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
   }
 
   body {
-    background-color: var(--color-bg);
-    color: var(--color-fg);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    color: #ffffff;
   }
 
-  /* Quiet, on-brand scrollbar */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-surface-2) transparent;
   }
 }
 
-/* Soft accent glow used behind the balance figure. Subtle by design. */
+/* Ambient glow accents */
 .kairo-glow {
   background: radial-gradient(
-    60% 80% at 50% 0%,
-    color-mix(in srgb, var(--color-accent) 22%, transparent),
-    transparent 70%
+    70% 60% at 50% 0%,
+    color-mix(in srgb, var(--color-accent) 18%, transparent),
+    transparent 80%
   );
+}
+
+.kairo-glow-emerald {
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    rgba(52, 211, 153, 0.12),
+    transparent 75%
+  );
+}
+
+.glass-panel {
+  background: rgba(19, 18, 27, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(27, 25, 38, 0.85);
+  border-color: var(--color-border-strong);
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.96); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

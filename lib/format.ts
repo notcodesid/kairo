@@ -45,6 +45,15 @@ export function amountToUnits(value: string | number, decimals: number): bigint 
   return BigInt(int || "0") * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
 }
 
+/** "Just now" / "5m ago" / "2h ago" / "Aug 30" for a ms timestamp. */
+export function relativeTime(ts: number): string {
+  const d = Date.now() - ts;
+  if (d < 60_000) return "Just now";
+  if (d < 3_600_000) return `${Math.floor(d / 60_000)}m ago`;
+  if (d < 86_400_000) return `${Math.floor(d / 3_600_000)}h ago`;
+  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 /** 0x00cD…B7e style truncation for an address. */
 export function truncateAddress(addr: string, lead = 6, tail = 4): string {
   if (!addr) return "";

@@ -65,6 +65,34 @@ async function fetchPublicStrk(address: string): Promise<number> {
 
 export type ConnectStatus = "idle" | "connecting" | "connected" | "error";
 
+/** A Kairo-initiated action, remembered per-address in localStorage. */
+export interface LocalActivity {
+  kind: "shield" | "unshield" | "sent";
+  amount: number;
+  txHash: string;
+  ts: number;
+}
+
+const historyKey = (addr: string) => `kairo:history:${addr.toLowerCase()}`;
+
+function loadHistory(addr: string): LocalActivity[] {
+  try {
+    return JSON.parse(localStorage.getItem(historyKey(addr)) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function recordActivity(addr: string, item: LocalActivity): LocalActivity[] {
+  const list = [item, ...loadHistory(addr)].slice(0, 50);
+  try {
+    localStorage.setItem(historyKey(addr), JSON.stringify(list));
+  } catch {
+    /* storage unavailable — history stays in-memory for the session */
+  }
+  return list;
+}
+
 interface WalletState {
   /** Wallets discovered via wallet-standard (Ready, Braavos, …). */
   wallets: WalletWithStarknetFeatures[];
@@ -81,6 +109,8 @@ interface WalletState {
   shielded?: number;
   /** Real public STRK balance, via RPC. */
   publicStrk?: number;
+  /** Kairo-initiated actions for this address (persisted in localStorage). */
+  history: LocalActivity[];
   /** The live starknet.js account — non-serializable, client-only. */
   account?: WalletAccountV6;
 
@@ -101,6 +131,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   status: "idle",
   isMainnet: false,
   strk20: "unknown",
+  history: [],
 
   connect: async (wallet) => {
     set({ status: "connecting", error: undefined });
@@ -129,6 +160,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         chainId,
         isMainnet,
         strk20: "unknown",
+        history: loadHistory(address),
       });
 
       // Public balance via plain RPC (no wallet prompt).
@@ -180,6 +212,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const { transaction_hash } = await account.strk20InvokeTransaction(actions);
     console.info("[kairo] private send tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    const addr = get().address;
+    if (addr) {
+      set({
+        history: recordActivity(addr, {
+          kind: "sent",
+          amount,
+          txHash: transaction_hash,
+          ts: Date.now(),
+        }),
+      });
+    }
     void get().refresh();
     return transaction_hash;
   },
@@ -197,6 +240,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const { transaction_hash } = await account.strk20InvokeTransaction(actions);
     console.info("[kairo] shield tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    const addr = get().address;
+    if (addr) {
+      set({
+        history: recordActivity(addr, {
+          kind: "shield",
+          amount,
+          txHash: transaction_hash,
+          ts: Date.now(),
+        }),
+      });
+    }
     void get().refresh();
     return transaction_hash;
   },
@@ -215,6 +269,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const { transaction_hash } = await account.strk20InvokeTransaction(actions);
     console.info("[kairo] unshield tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    const addr = get().address;
+    if (addr) {
+      set({
+        history: recordActivity(addr, {
+          kind: "unshield",
+          amount,
+          txHash: transaction_hash,
+          ts: Date.now(),
+        }),
+      });
+    }
     void get().refresh();
     return transaction_hash;
   },
@@ -244,6 +309,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       shielded: undefined,
       publicStrk: undefined,
       error: undefined,
+      history: [],
     });
   },
 }));
