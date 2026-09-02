@@ -22,6 +22,7 @@ import {
 import { txUrl } from "@/lib/explorer";
 import { formatAmount, splitAmount, truncateAddress } from "@/lib/format";
 import type { ActivityItem } from "@/lib/mock";
+import { isNotRegisteredError } from "@/lib/wallet-store";
 
 /* ---------------------------------------------------------------- Shared UI */
 
@@ -124,9 +125,13 @@ export function DoneModal({
 
 function friendlyError(err: unknown): string {
   const msg = String((err as Error)?.message ?? err);
-  return /reject|declin|denied|abort|cancel/i.test(msg)
-    ? "Transaction was declined in the wallet."
-    : msg;
+  if (/reject|declin|denied|abort|cancel/i.test(msg)) {
+    return "Transaction was declined in the wallet.";
+  }
+  if (isNotRegisteredError(err)) {
+    return "Private balances aren’t activated yet. Open Ready and complete one Shield there — that registers your viewing key. Then return here and try again.";
+  }
+  return msg;
 }
 
 /* ----------------------------------------------------------- Dashboard Tab */

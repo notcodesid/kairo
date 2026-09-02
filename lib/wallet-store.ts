@@ -10,7 +10,7 @@ import {
 import { WALLET_API } from "@starknet-io/types-js";
 import { createStore, type Store } from "@starknet-io/get-starknet-discovery";
 import type { WalletWithStarknetFeatures } from "@starknet-io/get-starknet-wallet-standard/features";
-import { MAINNET_CHAIN_ID, STRK, provider } from "@/lib/chain";
+import { MAINNET_CHAIN_ID, STRK, canReceivePrivately, networkFor, provider, rpcFor } from "@/lib/chain";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 
 export type Strk20Support =
@@ -50,9 +50,30 @@ async function probeStrk20(
   }
 }
 
+export function isNotRegisteredError(err: unknown): boolean {
+  return /NOT_REGISTERED/i.test(String((err as Error)?.message ?? err));
+}
+
+async function invokeStrk20(
+  account: WalletAccountV6,
+  actions: WALLET_API.STRK20_ACTION[],
+) {
+  try {
+    return await account.strk20InvokeTransaction(actions);
+  } catch (e) {
+    if (isNotRegisteredError(e)) {
+      useWalletStore.setState({ strk20: "unregistered" });
+    }
+    throw e;
+  }
+}
+
 /** Public (unshielded) STRK balance via plain RPC — no wallet prompt. */
-async function fetchPublicStrk(address: string): Promise<number> {
-  const res = await provider.callContract({
+async function fetchPublicStrk(
+  address: string,
+  chainId?: string,
+): Promise<number> {
+  const res = await rpcFor(chainId).callContract({
     contractAddress: STRK.address,
     entrypoint: "balanceOf",
     calldata: [address],
@@ -122,8 +143,8 @@ interface WalletState {
   shield: (amount: number) => Promise<string>;
   /** Unshield (withdraw to own address). Resolves to the tx hash. */
   unshield: (amount: number) => Promise<string>;
-  /** Re-fetch shielded + public balances (silent reads). */
-  refresh: () => Promise<void>;
+  /** Re-fetch shielded + public balances. True when a viewing key is live. */
+  refresh: () => Promise<boolean>;
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
@@ -136,7 +157,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   connect: async (wallet) => {
     set({ status: "connecting", error: undefined });
     try {
-      const wa = await WalletAccountV6.connect(provider, wallet);
+      const wa = await WalletAccountV6.connect(rpcFor(), wallet);
 
       const accounts = await walletV6.requestAccounts(wallet);
       const raw = Array.isArray(accounts) ? accounts[0] : accounts;
@@ -150,10 +171,14 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
       const chainId = (await walletV6.requestChainId(wallet)) as string;
       const isMainnet = chainId === MAINNET_CHAIN_ID;
+      const account =
+        networkFor(chainId) === "sepolia"
+          ? await WalletAccountV6.connect(rpcFor(chainId), wallet)
+          : wa;
 
       set({
         status: "connected",
-        account: wa,
+        account,
         address,
         walletName: wallet.name,
         walletIcon: wallet.icon,
@@ -164,13 +189,13 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       });
 
       // Public balance via plain RPC (no wallet prompt).
-      fetchPublicStrk(address)
+      fetchPublicStrk(address, chainId)
         .then((publicStrk) => set({ publicStrk }))
         .catch(() => {});
 
       // Probe STRK20 support — the answer drives the UI. User-initiated (the
       // user just clicked Connect); returns the shielded balance on success.
-      const { support, shielded } = await probeStrk20(wa);
+      const { support, shielded } = await probeStrk20(account);
       console.info(
         `[kairo] wallet=${wallet.name} chain=${chainId} strk20=${support}` +
           (shielded !== undefined ? ` shielded=${shielded}` : ""),
@@ -209,7 +234,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       },
     ] as WALLET_API.STRK20_ACTION[];
     // User-initiated (form submit). Ready may prompt once per action.
-    const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+    const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] private send tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
     const addr = get().address;
@@ -237,7 +262,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         amount: num.toHex(amountToUnits(amount, STRK.decimals)),
       },
     ] as WALLET_API.STRK20_ACTION[];
-    const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+    const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] shield tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
     const addr = get().address;
@@ -266,7 +291,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         recipient: address, // withdraw to self — re-links this amount publicly
       },
     ] as WALLET_API.STRK20_ACTION[];
-    const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+    const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] unshield tx:", transaction_hash);
     await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
     const addr = get().address;
@@ -285,13 +310,24 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   refresh: async () => {
-    const { account, address } = get();
-    if (!account || !address) return;
-    fetchPublicStrk(address)
+    const { account, address, chainId } = get();
+    if (!account || !address) return false;
+    fetchPublicStrk(address, chainId)
       .then((publicStrk) => set({ publicStrk }))
       .catch(() => {});
-    const { support, shielded } = await probeStrk20(account);
-    set({ strk20: support, shielded });
+    const probed = await probeStrk20(account);
+    if (probed.support === "supported") {
+      set({ strk20: "supported", shielded: probed.shielded });
+      return true;
+    }
+    // Ready can keep returning NOT_REGISTERED after the on-chain key exists.
+    const onPool = await canReceivePrivately(address, networkFor(chainId));
+    if (onPool) {
+      set({ strk20: "supported", shielded: probed.shielded ?? 0 });
+      return true;
+    }
+    set({ strk20: probed.support, shielded: probed.shielded });
+    return false;
   },
 
   disconnect: () => {

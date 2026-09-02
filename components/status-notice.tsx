@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Shield, Spinner } from "@/components/icons";
+import { addressUrl } from "@/lib/explorer";
 import type { Strk20Support } from "@/lib/wallet-store";
 
 /**
@@ -9,28 +10,32 @@ import type { Strk20Support } from "@/lib/wallet-store";
  */
 export function SetupCard({
   walletName = "Ready",
+  address,
+  network = "mainnet",
   onCheck,
 }: {
   walletName?: string;
-  onCheck: () => Promise<void>;
+  address?: string;
+  network?: "mainnet" | "sepolia";
+  onCheck: () => Promise<boolean>;
 }) {
   const [checking, setChecking] = useState(false);
-  const [checkedOnce, setCheckedOnce] = useState(false);
+  const [outcome, setOutcome] = useState<"idle" | "missing">("idle");
 
   async function check() {
     setChecking(true);
     try {
-      await onCheck();
-      setCheckedOnce(true);
+      const registered = await onCheck();
+      if (!registered) setOutcome("missing");
     } finally {
       setChecking(false);
     }
   }
 
   const steps = [
-    `Open your ${walletName} wallet extension`,
-    "Perform your first Shield deposit (covers the STRK20 protocol fee)",
-    "That initial shield creates and immutably registers your viewing key on-chain",
+    `Open your ${walletName} wallet extension (not this page)`,
+    "Shield any amount there — Ready creates and registers your viewing key on that first deposit",
+    "Come back and tap verify. After that, Kairo can shield, send, and unshield for you",
   ];
 
   return (
@@ -56,7 +61,7 @@ export function SetupCard({
         ))}
       </ol>
 
-      <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={check}
@@ -65,7 +70,7 @@ export function SetupCard({
         >
           {checking ? (
             <>
-              <Spinner size={16} /> Verifying on-chain…
+              <Spinner size={16} /> Checking the privacy pool…
             </>
           ) : (
             <>
@@ -74,9 +79,21 @@ export function SetupCard({
           )}
         </button>
 
-        {checkedOnce && !checking && (
-          <p role="status" className="text-[12px] text-faint">
-            Registration may take ~1 minute to finalize on Voyager.
+        {outcome === "missing" && !checking && (
+          <p role="status" className="text-[12px] leading-relaxed text-danger">
+            No viewing key on the pool for this account yet. Waiting longer won’t
+            help — the Ready Shield has to succeed first.{" "}
+            {address && (
+              <a
+                href={addressUrl(address, network)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent underline-offset-2 hover:underline"
+              >
+                Check this address on Voyager
+              </a>
+            )}{" "}
+            for a ViewingKeySet or Deposit event.
           </p>
         )}
       </div>

@@ -20,6 +20,17 @@ export const MAINNET_CHAIN_ID = constants.StarknetChainId.SN_MAIN; // 0x534e5f4d
 export const SEPOLIA_CHAIN_ID = constants.StarknetChainId.SN_SEPOLIA;
 
 export const provider = new RpcProvider({ nodeUrl: RPC_URL });
+export const sepoliaProvider = new RpcProvider({ nodeUrl: SEPOLIA_RPC_URL });
+
+export function networkFor(
+  chainId?: string,
+): "mainnet" | "sepolia" {
+  return chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet";
+}
+
+export function rpcFor(chainId?: string): RpcProvider {
+  return networkFor(chainId) === "sepolia" ? sepoliaProvider : provider;
+}
 
 /**
  * Protocol fee per pool action on mainnet, in STRK (pool `get_fee_amount`,
@@ -56,10 +67,12 @@ export const TOKENS: PoolToken[] = [STRK];
  */
 export async function canReceivePrivately(
   address: string,
+  network: "mainnet" | "sepolia" = "mainnet",
 ): Promise<boolean | undefined> {
   try {
-    const res = await provider.callContract({
-      contractAddress: POOL_ADDRESS,
+    const res = await (network === "sepolia" ? sepoliaProvider : provider).callContract({
+      contractAddress:
+        network === "sepolia" ? SEPOLIA_POOL_ADDRESS : POOL_ADDRESS,
       entrypoint: "get_public_key",
       calldata: [address],
     });

@@ -15,7 +15,7 @@ import {
   startWalletDiscovery,
   useWalletStore,
 } from "@/lib/wallet-store";
-import { POOL_FEE_STRK, canReceivePrivately } from "@/lib/chain";
+import { POOL_FEE_STRK, SEPOLIA_CHAIN_ID, canReceivePrivately } from "@/lib/chain";
 import { Navbar, type NavTab } from "@/components/navbar";
 import { WalletModal } from "@/components/wallet-modal";
 import { PoolStats } from "@/components/pool-stats";
@@ -38,9 +38,26 @@ function getInitialDemo(): DemoMode {
   return v === null ? "" : v === "unregistered" ? "unregistered" : "on";
 }
 
+/** Cached clock for pending-note maturity. getSnapshot must return a stable
+ *  value between ticks — `Date.now()` on every read loops in React 19. */
+let cachedNow = 0;
+
 function subscribeTime(callback: () => void) {
-  const interval = setInterval(callback, 15000);
+  cachedNow = Date.now();
+  const interval = setInterval(() => {
+    cachedNow = Date.now();
+    callback();
+  }, 15000);
   return () => clearInterval(interval);
+}
+
+function getNow() {
+  if (!cachedNow) cachedNow = Date.now();
+  return cachedNow;
+}
+
+function getServerNow() {
+  return 0;
 }
 
 export default function Home() {
@@ -50,6 +67,7 @@ export default function Home() {
     walletIcon,
     status,
     isMainnet,
+    chainId,
     strk20,
     wallets,
     shielded: realShielded,
@@ -68,11 +86,11 @@ export default function Home() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [demo, setDemo] = useState<DemoMode>(getInitialDemo);
 
-  const now = useSyncExternalStore(
-    subscribeTime,
-    () => Date.now(),
-    () => 0,
-  );
+  useEffect(() => {
+    setDemo(getInitialDemo());
+  }, []);
+
+  const now = useSyncExternalStore(subscribeTime, getNow, getServerNow);
 
   useEffect(() => {
     return startWalletDiscovery();
@@ -110,23 +128,26 @@ export default function Home() {
       peer: h.kind === "sent" ? "private" : undefined,
       at: relativeTime(h.ts),
     }));
-  }, [real, demoUnreg, history]);
+  }, [real, demoUnreg, history, now]);
 
   const token = MOCK_WALLET.token;
   const displayAddress = demo ? MOCK_WALLET.address : (address ?? "");
-  const showSetup = demoUnreg || (real && isConnected && isMainnet && strk20 === "unregistered");
+  const showSetup =
+    demoUnreg ||
+    (real && isConnected && strk20 === "unregistered");
 
   // While waiting on first-use registration, poll the pool
   useEffect(() => {
-    if (!(real && isConnected && isMainnet && strk20 === "unregistered" && address)) return;
+    if (!(real && isConnected && strk20 === "unregistered" && address)) return;
+    const network = chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet";
     const id = setInterval(async () => {
-      if (await canReceivePrivately(address)) {
+      if (await canReceivePrivately(address, network)) {
         clearInterval(id);
         void refresh();
       }
     }, 5000);
     return () => clearInterval(id);
-  }, [real, isConnected, isMainnet, strk20, address, refresh]);
+  }, [real, isConnected, strk20, address, chainId, refresh]);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-fg">
@@ -149,7 +170,7 @@ export default function Home() {
       {/* Main Container */}
       <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* First time setup banner if unregistered */}
-        {showSetup && (
+        {showSetup && activeTab !== "shield" && (
           <div className="mb-8">
             <SetupCard
               walletName={walletName}
@@ -255,14 +276,28 @@ export default function Home() {
               </div>
             )}
 
-            {activeTab === "shield" && (
-              <ShieldTab
-                publicBalance={publicStrk}
-                token={token}
-                feeStrk={POOL_FEE_STRK}
-                onShield={real ? shield : undefined}
-              />
-            )}
+            {activeTab === "shield" &&
+              (showSetup ? (
+                <div className="mx-auto max-w-xl">
+                  <SetupCard
+                    walletName={walletName}
+                    onCheck={
+                      real
+                        ? refresh
+                        : async () => {
+                            await new Promise((r) => setTimeout(r, 800));
+                          }
+                    }
+                  />
+                </div>
+              ) : (
+                <ShieldTab
+                  publicBalance={publicStrk}
+                  token={token}
+                  feeStrk={POOL_FEE_STRK}
+                  onShield={real ? shield : undefined}
+                />
+              ))}
 
             {activeTab === "transfer" && (
               <TransferTab
@@ -270,7 +305,15 @@ export default function Home() {
                 token={token}
                 feeStrk={POOL_FEE_STRK}
                 onSubmit={real ? sendPrivate : undefined}
-                checkRecipient={real ? canReceivePrivately : undefined}
+                checkRecipient={
+                  real
+                    ? (addr) =>
+                        canReceivePrivately(
+                          addr,
+                          chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet",
+                        )
+                    : undefined
+                }
               />
             )}
 
