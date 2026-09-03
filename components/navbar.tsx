@@ -36,7 +36,7 @@ interface NavbarProps {
   token?: string;
   onConnectClick: () => void;
   onDisconnect: () => void;
-  onRefresh?: () => Promise<void>;
+  onRefresh?: () => Promise<unknown>;
   demo?: string;
 }
 

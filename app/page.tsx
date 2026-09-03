@@ -179,6 +179,7 @@ export default function Home() {
                   ? refresh
                   : async () => {
                       await new Promise((r) => setTimeout(r, 800));
+                      return true;
                     }
               }
             />
@@ -286,6 +287,7 @@ export default function Home() {
                         ? refresh
                         : async () => {
                             await new Promise((r) => setTimeout(r, 800));
+                            return true;
                           }
                     }
                   />
