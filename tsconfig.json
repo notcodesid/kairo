@@ -19,7 +19,10 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@sdk-internal/*": [
+        "./node_modules/@starkware-libs/starknet-privacy-sdk/dist/internal/*"
+      ]
     }
   },
   "include": [
