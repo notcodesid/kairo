@@ -38,6 +38,11 @@ interface NavbarProps {
   onDisconnect: () => void;
   onRefresh?: () => Promise<unknown>;
   demo?: string;
+  /** Key-holding route switch. Rendered only when onModeChange is provided. */
+  mode?: "wallet" | "sdk";
+  onModeChange?: (mode: "wallet" | "sdk") => void;
+  connectLabel?: string;
+  disconnectLabel?: string;
 }
 
 export function Navbar({
@@ -53,6 +58,10 @@ export function Navbar({
   onDisconnect,
   onRefresh,
   demo,
+  mode = "wallet",
+  onModeChange,
+  connectLabel = "Connect Wallet",
+  disconnectLabel = "Disconnect Wallet",
 }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -170,8 +179,42 @@ export function Navbar({
           })}
         </nav>
 
-        {/* Right: Wallet Connection & Actions */}
+        {/* Right: Route switch & Wallet Connection */}
         <div className="flex items-center gap-2.5">
+          {onModeChange && (
+            <div
+              className="hidden items-center gap-1 rounded-full bg-surface/90 p-1 ring-1 ring-border/80 sm:flex"
+              role="tablist"
+              aria-label="Key-holding route"
+            >
+              {(
+                [
+                  { id: "wallet", label: "Wallet" },
+                  { id: "sdk", label: "SDK key" },
+                ] as const
+              ).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m.id}
+                  onClick={() => onModeChange(m.id)}
+                  title={
+                    m.id === "wallet"
+                      ? "Ready wallet holds the viewing key"
+                      : "Kairo holds the key itself (Sepolia)"
+                  }
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    mode === m.id
+                      ? "bg-surface-2 font-semibold text-accent ring-1 ring-border-strong"
+                      : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
           {connected && address ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -272,7 +315,7 @@ export function Navbar({
                       }}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-medium text-danger transition-colors hover:bg-danger/10"
                     >
-                      Disconnect Wallet
+                      {disconnectLabel}
                     </button>
                   </div>
                 </div>
@@ -285,7 +328,7 @@ export function Navbar({
               className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-bg transition-all duration-150 hover:bg-accent-strong hover:shadow-[0_0_20px_rgba(157,140,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Wallet size={15} />
-              <span>Connect Wallet</span>
+              <span>{connectLabel}</span>
             </button>
           )}
         </div>
