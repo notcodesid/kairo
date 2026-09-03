@@ -104,6 +104,15 @@ export function Unlock(p: IconProps) {
   );
 }
 
+export function KeyRound(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2.18 21.18a2.4 2.4 0 0 0 3.42 0l6.61-6.61a7 7 0 1 0-2.12-2.12l-6.61 6.61a2.4 2.4 0 0 0-1.3 2.12Z" />
+      <circle cx="16.5" cy="7.5" r=".75" />
+    </Svg>
+  );
+}
+
 export function QrCode(p: IconProps) {
   return (
     <Svg {...p}>
