@@ -15,6 +15,7 @@ import {
   startWalletDiscovery,
   useWalletStore,
 } from "@/lib/wallet-store";
+import { initSdkStore, useSdkStore } from "@/lib/sdk-store";
 import { POOL_FEE_STRK, SEPOLIA_CHAIN_ID, canReceivePrivately } from "@/lib/chain";
 import { Navbar, type NavTab } from "@/components/navbar";
 import { WalletModal } from "@/components/wallet-modal";
@@ -28,6 +29,10 @@ import {
   ActivityTab,
 } from "@/components/screens";
 import { SetupCard, StatusNotice } from "@/components/status-notice";
+import { SdkSetupCard } from "@/components/sdk-setup";
+
+/** Which party holds the viewing key: the wallet (Ready) or Kairo itself. */
+export type KeyRoute = "wallet" | "sdk";
 
 /** ?demo=1 → wallet view on sample data; ?demo=unregistered → first-use setup state. */
 type DemoMode = "" | "on" | "unregistered";
@@ -85,6 +90,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [demo, setDemo] = useState<DemoMode>(getInitialDemo);
+  const [route, setRoute] = useState<KeyRoute>("wallet");
+
+  const sdk = useSdkStore();
 
   useEffect(() => {
     setDemo(getInitialDemo());
@@ -96,29 +104,60 @@ export default function Home() {
     return startWalletDiscovery();
   }, []);
 
-  const real = !demo;
-  const isConnected = status === "connected" || Boolean(demo);
-  const demoUnreg = demo === "unregistered";
+  useEffect(() => {
+    initSdkStore();
+  }, []);
 
-  const shielded = real
-    ? strk20 === "supported"
-      ? (realShielded ?? 0)
+  const sdkMode = route === "sdk";
+  const sdkReady = sdk.status === "ready" && Boolean(sdk.address);
+
+  const real = !demo && !sdkMode;
+  const isConnected = sdkMode ? sdkReady : status === "connected" || Boolean(demo);
+  const demoUnreg = demo === "unregistered" && !sdkMode;
+
+  const shielded = sdkMode
+    ? sdk.registered
+      ? (sdk.shielded ?? 0)
       : 0
-    : demoUnreg
-      ? 0
-      : MOCK_WALLET.shielded;
+    : real
+      ? strk20 === "supported"
+        ? (realShielded ?? 0)
+        : 0
+      : demoUnreg
+        ? 0
+        : MOCK_WALLET.shielded;
 
   const pending = useMemo(() => {
+    if (sdkMode) {
+      if (!now) return 0;
+      return sdk.history
+        .filter((h) => h.kind === "shield" && now - h.ts < 5 * 60_000)
+        .reduce((sum, h) => sum + h.amount, 0);
+    }
     if (!real) return demoUnreg ? 0 : MOCK_WALLET.pending;
     if (!now) return 0;
     return history
       .filter((h) => h.kind === "shield" && now - h.ts < 5 * 60_000)
       .reduce((sum, h) => sum + h.amount, 0);
-  }, [real, demoUnreg, history, now]);
+  }, [sdkMode, sdk.history, real, demoUnreg, history, now]);
 
-  const publicStrk = real ? (realPublic ?? 0) : MOCK_WALLET.publicStrk;
+  const publicStrk = sdkMode
+    ? (sdk.publicStrk ?? 0)
+    : real
+      ? (realPublic ?? 0)
+      : MOCK_WALLET.publicStrk;
 
   const activity: ActivityItem[] = useMemo(() => {
+    if (sdkMode) {
+      return sdk.history.map((h) => ({
+        id: h.txHash,
+        kind: h.kind === "sent" ? "sent" : h.kind,
+        amount: h.amount,
+        token: MOCK_WALLET.token,
+        peer: h.kind === "sent" ? "private" : undefined,
+        at: relativeTime(h.ts),
+      }));
+    }
     if (!real) return demoUnreg ? [] : MOCK_WALLET.activity;
     return history.map((h) => ({
       id: h.txHash,
@@ -128,13 +167,17 @@ export default function Home() {
       peer: h.kind === "sent" ? "private" : undefined,
       at: relativeTime(h.ts),
     }));
-  }, [real, demoUnreg, history, now]);
+  }, [sdkMode, sdk.history, real, demoUnreg, history, now]);
 
   const token = MOCK_WALLET.token;
-  const displayAddress = demo ? MOCK_WALLET.address : (address ?? "");
-  const showSetup =
-    demoUnreg ||
-    (real && isConnected && strk20 === "unregistered");
+  const displayAddress = sdkMode
+    ? (sdk.address ?? "")
+    : demo
+      ? MOCK_WALLET.address
+      : (address ?? "");
+  const showSetup = sdkMode
+    ? sdkReady && !sdk.registered
+    : demoUnreg || (real && isConnected && strk20 === "unregistered");
 
   // While waiting on first-use registration, poll the pool
   useEffect(() => {
@@ -157,32 +200,73 @@ export default function Home() {
         onSelectTab={setActiveTab}
         connected={isConnected}
         address={displayAddress}
-        walletIcon={walletIcon}
-        isMainnet={real ? isMainnet : true}
+        walletIcon={sdkMode ? undefined : walletIcon}
+        isMainnet={sdkMode ? sdk.network === "mainnet" : real ? isMainnet : true}
         shieldedBalance={shielded}
         token={token}
-        onConnectClick={() => setWalletModalOpen(true)}
-        onDisconnect={demo ? () => setDemo("") : disconnect}
-        onRefresh={real ? refresh : undefined}
-        demo={demo}
+        onConnectClick={
+          sdkMode ? () => setActiveTab("dashboard") : () => setWalletModalOpen(true)
+        }
+        onDisconnect={sdkMode ? sdk.forget : demo ? () => setDemo("") : disconnect}
+        onRefresh={sdkMode ? sdk.refresh : real ? refresh : undefined}
+        demo={sdkMode ? "" : demo}
+        mode={route}
+        onModeChange={(m) => {
+          setRoute(m);
+          setActiveTab("dashboard");
+        }}
+        connectLabel={sdkMode ? "Get started" : "Connect Wallet"}
+        disconnectLabel={sdkMode ? "Forget SDK key" : "Disconnect Wallet"}
       />
 
       {/* Main Container */}
       <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Route switch for small screens (navbar switch is sm+) */}
+        <div className="mb-6 flex justify-center sm:hidden">
+          <div className="flex items-center gap-1 rounded-full bg-surface/90 p-1 ring-1 ring-border/80">
+            {(
+              [
+                { id: "wallet", label: "Wallet" },
+                { id: "sdk", label: "SDK key" },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setRoute(m.id);
+                  setActiveTab("dashboard");
+                }}
+                className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition-all ${
+                  route === m.id
+                    ? "bg-surface-2 font-semibold text-accent ring-1 ring-border-strong"
+                    : "text-muted hover:text-fg"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* First time setup banner if unregistered */}
         {showSetup && activeTab !== "shield" && (
           <div className="mb-8">
-            <SetupCard
-              walletName={walletName}
-              onCheck={
-                real
-                  ? refresh
-                  : async () => {
-                      await new Promise((r) => setTimeout(r, 800));
-                      return true;
-                    }
-              }
-            />
+            {sdkMode ? (
+              <SdkSetupCard />
+            ) : (
+              <SetupCard
+                walletName={walletName}
+                onCheck={
+                  real
+                    ? refresh
+                    : async () => {
+                        await new Promise((r) => setTimeout(r, 800));
+                        return true;
+                      }
+                }
+              />
+            )}
           </div>
         )}
 
@@ -198,7 +282,13 @@ export default function Home() {
         )}
 
         {/* Unconnected Welcome Hero (if not connected and no demo) */}
+        {/* Unconnected: wallet hero, or SDK setup when on the SDK route */}
         {!isConnected ? (
+          sdkMode ? (
+            <div className="mx-auto max-w-xl py-4">
+              <SdkSetupCard />
+            </div>
+          ) : (
           <div className="mx-auto max-w-2xl py-12 text-center">
             <div className="inline-flex size-16 items-center justify-center rounded-3xl bg-surface-2 text-accent ring-1 ring-border shadow-[0_0_40px_rgba(157,140,255,0.25)]">
               <Shield size={32} />
@@ -250,6 +340,12 @@ export default function Home() {
               ))}
             </div>
           </div>
+          )
+        ) : sdkMode && !sdk.registered && activeTab !== "dashboard" ? (
+          /* SDK route gates every action tab behind viewing-key registration */
+          <div className="mx-auto max-w-xl">
+            <SdkSetupCard />
+          </div>
         ) : (
           /* Connected Application Tabs Layout */
           <div>
@@ -271,7 +367,11 @@ export default function Home() {
                   <PoolStats
                     shieldedBalance={shielded}
                     publicBalance={publicStrk}
-                    isRegistered={strk20 === "supported" || demo === "on"}
+                    isRegistered={
+                      sdkMode
+                        ? sdk.registered
+                        : strk20 === "supported" || demo === "on"
+                    }
                   />
                 </div>
               </div>
@@ -280,24 +380,28 @@ export default function Home() {
             {activeTab === "shield" &&
               (showSetup ? (
                 <div className="mx-auto max-w-xl">
-                  <SetupCard
-                    walletName={walletName}
-                    onCheck={
-                      real
-                        ? refresh
-                        : async () => {
-                            await new Promise((r) => setTimeout(r, 800));
-                            return true;
-                          }
-                    }
-                  />
+                  {sdkMode ? (
+                    <SdkSetupCard />
+                  ) : (
+                    <SetupCard
+                      walletName={walletName}
+                      onCheck={
+                        real
+                          ? refresh
+                          : async () => {
+                              await new Promise((r) => setTimeout(r, 800));
+                              return true;
+                            }
+                      }
+                    />
+                  )}
                 </div>
               ) : (
                 <ShieldTab
                   publicBalance={publicStrk}
                   token={token}
-                  feeStrk={POOL_FEE_STRK}
-                  onShield={real ? shield : undefined}
+                  feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+                  onShield={sdkMode ? sdk.shield : real ? shield : undefined}
                 />
               ))}
 
@@ -305,16 +409,18 @@ export default function Home() {
               <TransferTab
                 spendable={shielded}
                 token={token}
-                feeStrk={POOL_FEE_STRK}
-                onSubmit={real ? sendPrivate : undefined}
+                feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+                onSubmit={sdkMode ? sdk.sendPrivate : real ? sendPrivate : undefined}
                 checkRecipient={
-                  real
-                    ? (addr) =>
-                        canReceivePrivately(
-                          addr,
-                          chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet",
-                        )
-                    : undefined
+                  sdkMode
+                    ? sdk.checkRecipient
+                    : real
+                      ? (addr) =>
+                          canReceivePrivately(
+                            addr,
+                            chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet",
+                          )
+                      : undefined
                 }
               />
             )}
@@ -323,15 +429,17 @@ export default function Home() {
               <UnshieldTab
                 shieldedBalance={shielded}
                 token={token}
-                feeStrk={POOL_FEE_STRK}
-                onUnshield={real ? unshield : undefined}
+                feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+                onUnshield={sdkMode ? sdk.unshield : real ? unshield : undefined}
               />
             )}
 
             {activeTab === "receive" && (
               <ReceiveTab
                 address={displayAddress}
-                receivable={strk20 === "supported" || demo === "on"}
+                receivable={
+                  sdkMode ? sdk.registered : strk20 === "supported" || demo === "on"
+                }
               />
             )}
 
