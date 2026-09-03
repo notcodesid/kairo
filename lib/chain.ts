@@ -7,7 +7,7 @@ export const RPC_URL = "https://rpc.starknet.lava.build";
  * Keyless Sepolia RPC (verified working; Blast's public Sepolia endpoint is
  * decommissioned — do not use it).
  */
-export const SEPOLIA_RPC_URL = "https://starknet-sepolia.drpc.org";
+export const SEPOLIA_RPC_URL = "https://api.cartridge.gg/x/starknet/sepolia";
 
 export const POOL_ADDRESS =
   "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a";

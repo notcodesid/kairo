@@ -9,7 +9,7 @@ import { Account, RpcProvider, constants, ec, hash } from "starknet";
 import { createPrivateTransfers } from "@starkware-libs/starknet-privacy-sdk";
 import { ContractDiscoveryProvider } from "@starkware-libs/starknet-privacy-sdk/testing";
 
-const SEPOLIA_RPC = "https://starknet-sepolia.drpc.org";
+const SEPOLIA_RPC = "https://api.cartridge.gg/x/starknet/sepolia";
 const POOL = "0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91";
 const PROVER = "https://transaction-prover.alpha-sepolia.sw-dev.io";
 const STRK = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
