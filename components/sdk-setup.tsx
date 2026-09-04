@@ -24,17 +24,43 @@ export function SdkSetupCard() {
     registered,
     publicStrk,
     paymaster,
+    locked,
+    hasStoredKey,
+    privateKey,
     setNetwork,
     generate,
     importKey,
+    unlock,
+    lock,
+    forget,
     register,
   } = useSdkStore();
   const [importOpen, setImportOpen] = useState(false);
   const [importValue, setImportValue] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [importPw, setImportPw] = useState("");
+  const [unlockPw, setUnlockPw] = useState("");
+  const [localError, setLocalError] = useState<string>();
   const [copied, setCopied] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [keyCopied, setKeyCopied] = useState(false);
 
-  const hasKey = status === "ready" && address;
+  const hasKey = status === "ready" && address && !locked;
   const mainnetBlocked = network === "mainnet" && !mainnetProverUrl();
+
+  function passwordsMatch(a: string, b: string): boolean {
+    if (a.length < 8) {
+      setLocalError("Password must be at least 8 characters.");
+      return false;
+    }
+    if (a !== b) {
+      setLocalError("Passwords don't match.");
+      return false;
+    }
+    setLocalError(undefined);
+    return true;
+  }
 
   async function copyAddress() {
     if (!address) return;
@@ -46,6 +72,20 @@ export function SdkSetupCard() {
       /* clipboard unavailable */
     }
   }
+
+  async function copyKey() {
+    if (!privateKey) return;
+    try {
+      await navigator.clipboard?.writeText(privateKey);
+      setKeyCopied(true);
+      setTimeout(() => setKeyCopied(false), 1400);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  const inputCls =
+    "h-13 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent";
 
   return (
     <section className="overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
@@ -91,33 +131,109 @@ export function SdkSetupCard() {
         </p>
       )}
 
-      {!hasKey ? (
+      {locked && hasStoredKey ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setLocalError(undefined);
+            void unlock(unlockPw).finally(() => setUnlockPw(""));
+          }}
+          className="mt-5 space-y-3"
+        >
+          <p className="text-[13px] leading-relaxed text-muted">
+            A key is stored on {network} — encrypted with your password. Unlock
+            it to continue. The plaintext never leaves this browser&apos;s memory.
+          </p>
+          <input
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            value={unlockPw}
+            onChange={(e) => setUnlockPw(e.target.value)}
+            className={inputCls}
+          />
+          <PrimaryButton type="submit" busy={busy === "unlock"}>
+            {busy === "unlock" ? "Unlocking…" : "Unlock key"}
+          </PrimaryButton>
+          {(error || localError) && (
+            <p className="text-[13px] text-danger">{localError ?? error}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setUnlockPw("");
+              forget();
+            }}
+            className="text-[12px] text-faint hover:text-danger"
+          >
+            Forget this key entirely
+          </button>
+        </form>
+      ) : !hasKey ? (
         <div className="mt-5 space-y-3">
           <p className="text-[13px] leading-relaxed text-muted">
             No embedded key on {network} yet. Generate a fresh throwaway (fund
-            it from a faucet), or import an existing test key. Throwaway keys
-            only — never use real funds here.
+            it from a faucet), or import an existing test key. It&apos;s
+            encrypted with a password before anything touches storage.
+            Throwaway keys only — never use real funds here.
           </p>
           {!importOpen ? (
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1">
-                <PrimaryButton busy={busy === "generate"} onClick={() => void generate()}>
-                  {busy === "generate" ? "Generating…" : "Generate throwaway key"}
-                </PrimaryButton>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!passwordsMatch(newPw, confirmPw)) return;
+                const pw = newPw;
+                setNewPw("");
+                setConfirmPw("");
+                void generate(pw);
+              }}
+              className="space-y-3"
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="New password (8+ chars)"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  className={inputCls}
+                />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm password"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  className={inputCls}
+                />
               </div>
-              <button
-                type="button"
-                onClick={() => setImportOpen(true)}
-                className="flex h-13 items-center justify-center rounded-2xl bg-surface-2 px-5 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-surface-2/80"
-              >
-                Import key
-              </button>
-            </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex-1">
+                  <PrimaryButton type="submit" busy={busy === "generate"}>
+                    {busy === "generate" ? "Generating…" : "Generate throwaway key"}
+                  </PrimaryButton>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setImportOpen(true)}
+                  className="flex h-13 items-center justify-center rounded-2xl bg-surface-2 px-5 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-surface-2/80"
+                >
+                  Import key
+                </button>
+              </div>
+            </form>
           ) : (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                void importKey(importValue);
+                if (importPw.length < 8) {
+                  setLocalError("Password must be at least 8 characters.");
+                  return;
+                }
+                setLocalError(undefined);
+                const pw = importPw;
+                setImportPw("");
+                void importKey(importValue, pw);
               }}
               className="space-y-3"
             >
@@ -128,7 +244,15 @@ export function SdkSetupCard() {
                 placeholder="0x… private key"
                 value={importValue}
                 onChange={(e) => setImportValue(e.target.value)}
-                className="h-13 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                className={inputCls}
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                placeholder="Encrypt with password (8+ chars)"
+                value={importPw}
+                onChange={(e) => setImportPw(e.target.value)}
+                className={inputCls}
               />
               <div className="flex gap-3">
                 <div className="flex-1">
@@ -141,6 +265,7 @@ export function SdkSetupCard() {
                   onClick={() => {
                     setImportOpen(false);
                     setImportValue("");
+                    setImportPw("");
                   }}
                   className="flex h-13 items-center justify-center rounded-2xl bg-surface-2 px-5 text-[14px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
                 >
@@ -149,7 +274,9 @@ export function SdkSetupCard() {
               </div>
             </form>
           )}
-          {error && <p className="text-[13px] text-danger">{error}</p>}
+          {(error || localError) && (
+            <p className="text-[13px] text-danger">{localError ?? error}</p>
+          )}
         </div>
       ) : !registered ? (
         <div className="mt-5 space-y-4">
@@ -220,15 +347,111 @@ export function SdkSetupCard() {
             )}
           </PrimaryButton>
           {error && <p className="text-[13px] text-danger">{error}</p>}
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setShowKey(false);
+                lock();
+              }}
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+            >
+              Lock key
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+            >
+              {showKey ? "Hide backup" : "Back up key"}
+            </button>
+            <button
+              type="button"
+              onClick={forget}
+              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-faint ring-1 ring-transparent transition-colors hover:text-danger"
+            >
+              Forget
+            </button>
+          </div>
+          {showKey && privateKey && (
+            <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-border">
+              <p className="text-[12px] leading-relaxed text-warning">
+                Anyone with this key controls the account. Copy it somewhere
+                safe, then hide it.
+              </p>
+              <p className="break-all font-mono text-[12px] text-muted select-all">
+                {privateKey}
+              </p>
+              <button
+                type="button"
+                onClick={() => void copyKey()}
+                className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+              >
+                {keyCopied ? <Check size={13} /> : <Copy size={13} />}
+                {keyCopied ? "Copied" : "Copy private key"}
+              </button>
+            </div>
+          )}
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowKey(false);
+                lock();
+              }}
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+            >
+              Lock key
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+            >
+              {showKey ? "Hide backup" : "Back up key"}
+            </button>
+            <button
+              type="button"
+              onClick={forget}
+              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-faint ring-1 ring-transparent transition-colors hover:text-danger"
+            >
+              Forget
+            </button>
+          </div>
+          {showKey && privateKey && (
+            <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-border">
+              <p className="text-[12px] leading-relaxed text-warning">
+                Anyone with this key controls the account. Copy it somewhere
+                safe, then hide it.
+              </p>
+              <p className="break-all font-mono text-[12px] text-muted select-all">
+                {privateKey}
+              </p>
+              <button
+                type="button"
+                onClick={() => void copyKey()}
+                className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+              >
+                {keyCopied ? <Check size={13} /> : <Copy size={13} />}
+                {keyCopied ? "Copied" : "Copy private key"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="mt-4 font-mono text-[11px] text-faint">
         {hasKey
           ? registered
             ? `registered · ${truncateAddress(address, 8, 6)} · ${network}`
             : `key loaded · ${truncateAddress(address ?? "", 8, 6)} · ${network}`
-          : `no key · ${network}`}
+          : locked && hasStoredKey
+            ? `locked · encrypted at rest · ${network}`
+            : `no key · ${network}`}
         {paymaster !== "unknown" &&
           ` · sends via ${paymaster === "sponsored" ? "paymaster relay" : "self-pay"}`}
       </p>

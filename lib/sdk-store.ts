@@ -37,6 +37,11 @@ import {
   getPaymasterStatus,
   submitSponsored,
 } from "@/lib/paymaster";
+import {
+  decryptPrivateKey,
+  encryptPrivateKey,
+  type EncryptedKey,
+} from "@/lib/keystore";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 import { STRK } from "@/lib/chain";
 
@@ -47,15 +52,44 @@ export interface SdkActivity {
   ts: number;
 }
 
-const keyOf = (network: SdkNetwork) => `kairo:sdk:key:${network}`;
+const encKeyOf = (network: SdkNetwork) => `kairo:sdk:enc:${network}`;
+const legacyKeyOf = (network: SdkNetwork) => `kairo:sdk:key:${network}`;
 const historyKey = (network: SdkNetwork, addr: string) =>
   `kairo:sdk:history:${network}:${addr.toLowerCase()}`;
 
-function loadKey(network: SdkNetwork): string | undefined {
+function loadCipher(network: SdkNetwork): EncryptedKey | undefined {
   try {
-    return localStorage.getItem(keyOf(network)) ?? undefined;
+    const raw = localStorage.getItem(encKeyOf(network));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as EncryptedKey;
+    if (parsed?.v !== 1 || !parsed.salt || !parsed.iv || !parsed.data) {
+      return undefined;
+    }
+    return parsed;
   } catch {
     return undefined;
+  }
+}
+
+/** Pre-encryption plaintext from older builds — migrated, never written. */
+function loadLegacy(network: SdkNetwork): string | undefined {
+  try {
+    return localStorage.getItem(legacyKeyOf(network)) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveCipher(network: SdkNetwork, payload: EncryptedKey) {
+  localStorage.setItem(encKeyOf(network), JSON.stringify(payload));
+}
+
+function clearStoredKey(network: SdkNetwork) {
+  try {
+    localStorage.removeItem(encKeyOf(network));
+    localStorage.removeItem(legacyKeyOf(network));
+  } catch {
+    /* ignore */
   }
 }
 
@@ -126,14 +160,24 @@ interface SdkWalletState {
   feeStrk: number;
   history: SdkActivity[];
   account?: Account;
+  /** Raw key — memory only while unlocked. NEVER persisted; wiped on lock. */
+  privateKey?: string;
+  /** True when ciphertext exists but is not decrypted (or no key at all). */
+  locked: boolean;
+  /** True when any stored key (ciphertext or legacy plaintext) exists. */
+  hasStoredKey: boolean;
   /** How SDK sends are submitted: paymaster relay or self-submission. */
   paymaster: "unknown" | "sponsored" | "self-pay";
 
   setNetwork: (network: SdkNetwork) => void;
-  /** Generate a fresh throwaway and persist it for this network. */
-  generate: () => Promise<void>;
-  /** Import a raw private key (hex) for this network. */
-  importKey: (privateKey: string) => Promise<void>;
+  /** Generate a fresh throwaway, encrypt with password, persist ciphertext. */
+  generate: (password: string) => Promise<void>;
+  /** Import a raw private key (hex), encrypt with password, persist. */
+  importKey: (privateKey: string, password: string) => Promise<void>;
+  /** Decrypt the stored key into memory for this session. */
+  unlock: (password: string) => Promise<void>;
+  /** Wipe in-memory key material (ciphertext stays for next unlock). */
+  lock: () => void;
   /** Forget the key for this network. */
   forget: () => void;
   /** Generate + register the viewing key on-chain (RFP bullet 1). */
@@ -157,13 +201,37 @@ async function hydrate(
   const cfg = sdkConfigFor(network);
   const account = accountFor(address, privateKey, network);
   const viewingKey = deriveViewingKey(privateKey, cfg.chainId, cfg.poolAddress);
-  set({ status: "ready", address, viewingKey, account, error: undefined });
-  try {
-    localStorage.setItem(keyOf(network), privateKey);
-  } catch {
-    /* persistence is best-effort */
-  }
+  set({
+    status: "ready",
+    address,
+    viewingKey,
+    account,
+    privateKey,
+    locked: false,
+    hasStoredKey: true,
+    error: undefined,
+  });
   await get().refresh();
+}
+
+/** Reset in-memory key material; keep `hasStoredKey` as given. */
+function lockState(hasStoredKey: boolean): Partial<SdkWalletState> {
+  return {
+    status: "idle",
+    error: undefined,
+    busy: undefined,
+    address: undefined,
+    viewingKey: undefined,
+    account: undefined,
+    privateKey: undefined,
+    locked: true,
+    hasStoredKey,
+    registered: false,
+    deployed: false,
+    shielded: undefined,
+    publicStrk: undefined,
+    history: [],
+  };
 }
 
 export const useSdkStore = create<SdkWalletState>((set, get) => ({
@@ -174,32 +242,24 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
   feeStrk: 6,
   history: [],
   paymaster: "unknown",
+  locked: true,
+  hasStoredKey: false,
 
   setNetwork: (network) => {
     set({
       network,
-      status: "idle",
-      error: undefined,
-      address: undefined,
-      viewingKey: undefined,
-      account: undefined,
-      registered: false,
-      deployed: false,
-      shielded: undefined,
-      publicStrk: undefined,
+      ...lockState(Boolean(loadCipher(network) ?? loadLegacy(network))),
       feeStrk: 6,
-      history: [],
       paymaster: "unknown",
     });
-    const saved = loadKey(network);
-    if (saved) void hydrate(set, get, network, saved);
   },
 
-  generate: async () => {
+  generate: async (password) => {
     set({ busy: "generate", error: undefined });
     try {
       const { network } = get();
       const { privateKey } = generateThrowaway();
+      saveCipher(network, await encryptPrivateKey(privateKey, password));
       await hydrate(set, get, network, privateKey);
     } catch (e) {
       set({ status: "error", error: String((e as Error)?.message ?? e) });
@@ -208,7 +268,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
     }
   },
 
-  importKey: async (raw) => {
+  importKey: async (raw, password) => {
     set({ busy: "import", error: undefined });
     try {
       const privateKey = raw.trim();
@@ -217,6 +277,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       }
       // Throws on bad keys.
       addressFromPrivateKey(privateKey);
+      saveCipher(get().network, await encryptPrivateKey(privateKey, password));
       await hydrate(set, get, get().network, privateKey);
     } catch (e) {
       set({ status: "error", error: String((e as Error)?.message ?? e) });
@@ -225,32 +286,49 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
     }
   },
 
+  unlock: async (password) => {
+    set({ busy: "unlock", error: undefined });
+    try {
+      const { network } = get();
+      const cipher = loadCipher(network);
+      const legacy = cipher ? undefined : loadLegacy(network);
+      if (!cipher && !legacy) throw new Error("No stored key on this network.");
+      const privateKey = cipher
+        ? await decryptPrivateKey(cipher, password)
+        : legacy!;
+      if (legacy) {
+        // One-way migration: encrypt with the provided password, then drop
+        // the plaintext (clearStoredKey removes legacy + any stale cipher).
+        const migrated = await encryptPrivateKey(legacy, password);
+        clearStoredKey(network);
+        saveCipher(network, migrated);
+      }
+      await hydrate(set, get, network, privateKey);
+    } catch (e) {
+      set({ error: String((e as Error)?.message ?? e) });
+    } finally {
+      set({ busy: undefined });
+    }
+  },
+
+  lock: () => {
+    set(lockState(get().hasStoredKey));
+  },
+
   forget: () => {
     const { network } = get();
-    try {
-      localStorage.removeItem(keyOf(network));
-    } catch {
-      /* ignore */
-    }
+    clearStoredKey(network);
     set({
-      status: "idle",
-      error: undefined,
-      address: undefined,
-      viewingKey: undefined,
-      account: undefined,
-      registered: false,
-      deployed: false,
-      shielded: undefined,
-      publicStrk: undefined,
-      history: [],
+      ...lockState(false),
+      locked: true,
     });
   },
 
   register: async () => {
-    const { account, address, network } = get();
-    if (!account || !address) throw new Error("No embedded key loaded.");
-    const privateKey = loadKey(network);
-    if (!privateKey) throw new Error("No embedded key loaded.");
+    const { account, address, network, privateKey } = get();
+    if (!account || !address || !privateKey) {
+      throw new Error("Unlock the key first — nothing is loaded into memory.");
+    }
     set({ busy: "register", error: undefined });
     try {
       // Deploying and registering both cost gas — fail fast with a human
@@ -501,16 +579,12 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
   },
 }));
 
-/** Load the persisted SDK key for the default network (call once on mount). */
+/**
+ * Boot check: note whether a stored key exists (no silent decrypt — the user
+ * unlocks with their password). Call once on mount.
+ */
 export function initSdkStore() {
   const { network } = useSdkStore.getState();
-  const saved = loadKey(network);
-  if (saved) {
-    hydrate(
-      useSdkStore.setState,
-      () => useSdkStore.getState(),
-      network,
-      saved,
-    ).catch(() => {});
-  }
+  const hasStoredKey = Boolean(loadCipher(network) ?? loadLegacy(network));
+  useSdkStore.setState({ hasStoredKey, locked: true });
 }
