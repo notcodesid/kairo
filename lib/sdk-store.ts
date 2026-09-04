@@ -26,11 +26,17 @@ import {
   isRegistered,
   OZ_CLASS_HASH,
   sdkConfigFor,
+  sdkBuildPrivateTransfer,
   sdkSendPrivate,
   sdkShield,
   sdkUnshield,
   type SdkNetwork,
 } from "@/lib/sdk";
+import {
+  fetchSponsoredFee,
+  getPaymasterStatus,
+  submitSponsored,
+} from "@/lib/paymaster";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 import { STRK } from "@/lib/chain";
 
@@ -120,6 +126,8 @@ interface SdkWalletState {
   feeStrk: number;
   history: SdkActivity[];
   account?: Account;
+  /** How SDK sends are submitted: paymaster relay or self-submission. */
+  paymaster: "unknown" | "sponsored" | "self-pay";
 
   setNetwork: (network: SdkNetwork) => void;
   /** Generate a fresh throwaway and persist it for this network. */
@@ -165,6 +173,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
   deployed: false,
   feeStrk: 6,
   history: [],
+  paymaster: "unknown",
 
   setNetwork: (network) => {
     set({
@@ -180,6 +189,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       publicStrk: undefined,
       feeStrk: 6,
       history: [],
+      paymaster: "unknown",
     });
     const saved = loadKey(network);
     if (saved) void hydrate(set, get, network, saved);
@@ -291,6 +301,11 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
 
   refresh: async () => {
     const { account, address, viewingKey, network } = get();
+    getPaymasterStatus()
+      .then(({ sponsored }) =>
+        set({ paymaster: sponsored ? "sponsored" : "self-pay" }),
+      )
+      .catch(() => {});
     if (!account || !address || !viewingKey) return;
     const cfg = sdkConfigFor(network);
     const rpc = new RpcProvider({ nodeUrl: cfg.rpcUrl });
@@ -377,13 +392,71 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
     if (!account || !viewingKey || !address) {
       throw new Error("No embedded key loaded.");
     }
+    const units = amountToUnits(amount, STRK.decimals);
+
+    // Sponsored first: status + fee + prove are all pre-submission, so any
+    // failure here safely falls through to self-pay below.
+    try {
+      const { sponsored } = await getPaymasterStatus();
+      if (!sponsored) throw new Error("sponsorship off");
+      const fee = await fetchSponsoredFee({ network });
+      const { callAndProof } = await sdkBuildPrivateTransfer({
+        account,
+        viewingKey,
+        network,
+        recipient,
+        amount: units,
+        fee: { token: fee.token, recipient: fee.recipient, amount: fee.amount },
+      });
+      // The proof now commits to the paymaster fee: from here on, relay
+      // errors surface directly — no fallback (re-submitting self-paid would
+      // still pay the paymaster fee for nothing).
+      const call = callAndProof.call as {
+        contractAddress: string;
+        entrypoint: string;
+        calldata: unknown[];
+      };
+      const txHash = await submitSponsored({
+        network,
+        poolFeeToken: STRK.address,
+        callAndProof: {
+          call: {
+            contractAddress: String(call.contractAddress),
+            entrypoint: call.entrypoint,
+            calldata: [...call.calldata],
+          },
+          proof: {
+            data: callAndProof.proof.data,
+            proofFacts: [...callAndProof.proof.proofFacts],
+          },
+        },
+      });
+      const cfg = sdkConfigFor(network);
+      await new RpcProvider({ nodeUrl: cfg.rpcUrl }).waitForTransaction(txHash);
+      console.info("[sdk] sponsored send tx:", txHash);
+      set({
+        paymaster: "sponsored",
+        history: recordActivity(network, address, {
+          kind: "sent",
+          amount,
+          txHash,
+          ts: Date.now(),
+        }),
+      });
+      void get().refresh();
+      return txHash;
+    } catch (e) {
+      console.info("[sdk] sponsored send unavailable, self-paying:", friendlySdkError(e, network));
+      set({ paymaster: "self-pay" });
+    }
+
     try {
       const txHash = await sdkSendPrivate({
         account,
         viewingKey,
         network,
         recipient,
-        amount: amountToUnits(amount, STRK.decimals),
+        amount: units,
       });
       set({
         history: recordActivity(network, address, {

@@ -439,7 +439,7 @@ export async function sdkShield(args: {
   return submitCallAndProof(account, rpc, callAndProof, "shield");
 }
 
-/** Private transfer via the SDK. Returns tx hash. */
+/** Private transfer via the SDK (self-submitted). Returns tx hash. */
 export async function sdkSendPrivate(args: {
   account: Account;
   viewingKey: bigint;
@@ -449,11 +449,49 @@ export async function sdkSendPrivate(args: {
   token?: string;
   provider?: ProviderInterface;
 }): Promise<string> {
+  const { account, network } = args;
+  const cfg = sdkConfigFor(network);
+  const rpc =
+    args.provider ?? new RpcProvider({ nodeUrl: cfg.rpcUrl });
+  const { callAndProof } = await sdkBuildPrivateTransfer(args);
+  return submitCallAndProof(account, rpc, callAndProof, "private send");
+}
+
+/**
+ * Build + prove a private transfer WITHOUT submitting. The returned
+ * callAndProof can be submitted by the account itself (self-pay) or relayed
+ * by the paymaster (sponsored: pass the paymaster's fee quote — it is
+ * withdrawn to the paymaster inside the same proof).
+ *
+ * v1 constraint: the fee token must equal the transfer token (STRK→STRK in
+ * our app), so one note input covers transfer + fee.
+ */
+export async function sdkBuildPrivateTransfer(args: {
+  account: Account;
+  viewingKey: bigint;
+  network: SdkNetwork;
+  recipient: string;
+  amount: bigint;
+  token?: string;
+  provider?: ProviderInterface;
+  fee?: { token: string; recipient: string; amount: bigint };
+}): Promise<{
+  callAndProof: {
+    call: Parameters<Account["execute"]>[0];
+    proof: { proofFacts: string[]; data: string };
+  };
+}> {
   const { account, viewingKey, network, recipient, amount } = args;
   const cfg = sdkConfigFor(network);
   const rpc =
     args.provider ?? new RpcProvider({ nodeUrl: cfg.rpcUrl });
   const token = args.token ?? STRK.address;
+  const sponsoredFee = args.fee;
+  if (sponsoredFee && BigInt(sponsoredFee.token) !== BigInt(token)) {
+    throw new Error(
+      "Sponsored fee token must match the transfer token (v1 supports STRK→STRK).",
+    );
+  }
   const transfers = createSdkTransfers({
     account,
     viewingKey,
@@ -466,16 +504,34 @@ export async function sdkSendPrivate(args: {
   const list = notes.get(BigInt(token)) ?? [];
   const spendable = list.filter((n) => !n.open);
   if (spendable.length === 0) throw new Error("No spendable notes — shield first.");
-  const note = spendable.reduce((a, b) => (a.amount >= b.amount ? a : b));
+  // Cover transfer + paymaster fee from one note when sponsored.
+  const need = sponsoredFee ? amount + sponsoredFee.amount : amount;
+  const covering = spendable.filter((n) => n.amount >= need);
+  if (covering.length === 0) {
+    throw new Error(
+      sponsoredFee
+        ? "Shielded balance doesn't cover the amount plus the paymaster fee — shield more first."
+        : "No single note covers the amount — try a smaller amount.",
+    );
+  }
+  const note = covering.reduce((a, b) => (a.amount <= b.amount ? a : b));
   const block = await waitMaturity(rpc, Number(note.created ?? 0));
-  const fee = await poolFeeUnits(rpc, cfg.poolAddress);
-  await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
+  if (!sponsoredFee) {
+    const fee = await poolFeeUnits(rpc, cfg.poolAddress);
+    await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
+  }
   const { callAndProof } = await transfers
     .build({ autoSetup: true })
     .surplusTo(account.address)
-    .with(token, (t) => t.inputs(note).transfer({ recipient, amount }))
+    .with(token, (t) => {
+      t.inputs(note).transfer({ recipient, amount });
+      if (sponsoredFee) {
+        // Paymaster reimbursement, proven inside the same tx.
+        t.withdraw({ recipient: sponsoredFee.recipient, amount: sponsoredFee.amount });
+      }
+    })
     .execute({ provingBlockId: block });
-  return submitCallAndProof(account, rpc, callAndProof, "private send");
+  return { callAndProof };
 }
 
 /** Unshield (withdraw to own address) via the SDK. Returns tx hash. */

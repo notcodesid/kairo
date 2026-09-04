@@ -23,6 +23,7 @@ export function SdkSetupCard() {
     address,
     registered,
     publicStrk,
+    paymaster,
     setNetwork,
     generate,
     importKey,
@@ -228,6 +229,8 @@ export function SdkSetupCard() {
             ? `registered · ${truncateAddress(address, 8, 6)} · ${network}`
             : `key loaded · ${truncateAddress(address ?? "", 8, 6)} · ${network}`
           : `no key · ${network}`}
+        {paymaster !== "unknown" &&
+          ` · sends via ${paymaster === "sponsored" ? "paymaster relay" : "self-pay"}`}
       </p>
     </section>
   );
