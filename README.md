@@ -40,26 +40,47 @@ send (private)   →  Withdraw / CreateEncNote through the pool, paymaster gas
 in / out         →  shield (public → private) · unshield (private → public)
 ```
 
-## Architecture: why the wallet route
+## Architecture: two routes, one app
 
-The [RFP](https://strk20.starknet.io/rfp/privacy-wallet) describes a privacy wallet across 5 core requirements. Below is the transparent breakdown of how Kairo delivers each requirement across **Mainnet** (live production product) and **Sepolia** (literal protocol proofs):
+Kairo ships **both** STRK20 integration routes behind a route switch
+(`Wallet | SDK key` in the navbar). Below is the transparent breakdown of how
+each RFP requirement is delivered:
 
-| RFP requirement | How Kairo delivers it | Status |
-|---|---|:---:|
-| **1. Generate + register viewing keys on first use** | **Mainnet:** Handled via capability probe on connect + guided first-use registration in Ready wallet. Because registration on the pool contract is immutable and Ready derives keys from user seeds, a dapp must never generate arbitrary keys on a user's behalf.<br>**Sepolia:** Literally implemented in [`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs) where Kairo derives the canonical viewing key from signature and registers it directly to the pool ([`ViewingKeySet` tx](https://sepolia.voyager.online/tx/0x547902e639fd45589a95f28748fc91dc051b44f487d3ece093c20eb023fa190)). | ✅ Covered |
-| **2. Publish receive address anyone can pay to** | Dedicated **Receive** view (QR code + address copy), paired with on-chain recipient validation (`canReceivePrivately`) that checks the pool contract before sending to guarantee the destination has a registered viewing key. | ✅ 100% In-App |
-| **3. Run discovery service against viewing key** | **Mainnet:** Ready wallet executes internal discovery, and Kairo surfaces live shielded notes/balances via `wallet_strk20Balances`. (Necessary because StarkWare has not published public mainnet indexer endpoints).<br>**Sepolia:** Proven end-to-end via custom `discoverNotes()` scanning in [`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs). | ✅ Covered |
-| **4. Sends as `Withdraw` / `CreateEncNote`, paymaster gas** | All private transfers and unshield actions invoke `strk20InvokeTransaction` submitted via AVNU forwarder relayers (`0x0127…584f`). User addresses are omitted from calldata. Confirmed on Mainnet emitting real `EncNoteCreated` and `Withdrawal` pool events. | ✅ 100% In-App |
-| **5. Wallet-grade UI, crypto under the hood** | Full consumer dashboard, Shield, Transfer, Unshield, Receive, Activity history, PWA support, demo mode (`?demo=1`), zero cryptographic jargon. | ✅ 100% In-App |
+| RFP requirement | Wallet route (mainnet, Ready) | SDK route (in-app key) | Status |
+|---|---|---|:---:|
+| **1. Generate + register viewing keys on first use** | Capability probe on connect + guided first-use registration in Ready (registration is immutable; a dapp must never register for a wallet-held account). | `Generate throwaway key` → `Generate + register viewing key` in the app: canonical derivation + SDK `register()` → `ViewingKeySet` ([`lib/sdk.ts`](./lib/sdk.ts)). | ✅ Both |
+| **2. Publish receive address anyone can pay to** | Receive screen (QR + address) + on-chain `get_public_key` pre-check. | Same screens, same pre-check (`isRegistered` over RPC). | ✅ 100% In-App |
+| **3. Run discovery against the viewing key** | Ready runs discovery; Kairo surfaces `wallet_strk20Balances`. | Kairo runs `ContractDiscoveryProvider` over plain RPC — no hosted indexer needed ([verified live](./scripts/check-sdk.mjs)). | ✅ Both |
+| **4. Sends as `Withdraw` / `CreateEncNote`, paymaster gas** | `strk20InvokeTransaction` via the AVNU forwarder (`0x0127…584f`) — Ready's own paymaster deal. | SDK-built proofs; sponsored relay via AVNU (`app/api/paymaster/*`, `sponsored_private`) with self-pay fallback. | ✅ Both |
+| **5. Wallet-grade UI, crypto under the hood** | The entire product: dashboard, Shield, Transfer, Unshield, Receive, Activity, PWA, `?demo=1`, zero jargon. | Same UI — only the data source changes. | ✅ 100% In-App |
 
-### Why not the pure SDK route on Mainnet?
-The standalone Privacy SDK route requires two external hosted endpoints:
-1. `PROVING_SERVICE_URL` (to generate STARK execution proofs)
-2. `INDEXER_URL` (hosted discovery service to index encrypted notes)
+### Custody (SDK route)
 
-On **Starknet Mainnet, both endpoints remain unannounced and closed** (see open issues on the hackathon repository). Without these URLs, a web app cannot generate mainnet proofs or scan notes independently without hosting heavy sequencer infrastructure. 
+The embedded key is encrypted with AES-GCM-256 (PBKDF2-SHA256, 600k
+iterations) before anything touches storage ([`lib/keystore.ts`](./lib/keystore.ts)).
+Plaintext lives only in memory while unlocked; lock wipes it, forget wipes
+everything. Auditor disclosure (viewing key, detection-only) and diagnostics
+export live in the SDK setup card.
 
-The **STRK20 Wallet API** route in Ready is currently the **only functional path on Starknet Mainnet**. It delivers the exact same on-chain pool state with a strictly superior security model: **Kairo never touches user private keys or funds**.
+### Why the wallet route still matters on mainnet
+
+The standalone SDK route needs a hosted proving service. On **Sepolia** it's
+public (`transaction-prover.alpha-sepolia.sw-dev.io`); on **mainnet it is
+unpublished** (hackathon issue #124, open). So today every mainnet entry goes
+through a wallet — Ready is currently the only one with the STRK20 dapp API,
+and its proofs + AVNU submission are what the [`strk20.json`](./strk20.json)
+hashes verify. The day StarkWare publishes the URL, mainnet SDK lights up via
+one env var (`NEXT_PUBLIC_PROVING_URL_MAINNET`) with zero code changes.
+
+### Env vars (all optional)
+
+| Var | Purpose | Default |
+|---|---|---|
+| `PAYMASTER_API_KEY` (server-only) | Sponsored SDK submits via AVNU. Unset → self-pay fallback, wallet route unaffected. | unset |
+| `NEXT_PUBLIC_PROVING_URL_MAINNET` | Mainnet SDK proving service, when published. | unset (Sepolia prover is public) |
+
+No env vars needed for the wallet route or the Sepolia SDK demo:
+`npm i && npm run dev` just works.
 
 ---
 
@@ -77,7 +98,10 @@ Verified via `node scripts/verify-txs.mjs`:
 | **Private Transfer 2** | [`0x7d4fbdc1…1a6a94`](https://voyager.online/tx/0x7d4fbdc13606d38af79e0a1f0d0d54e43504ab55a43ba5f23ad28d0d11a6a94) | `EncNoteCreated×2`, `Withdrawal×1` |
 
 ### Sepolia Proof-of-Concept Transactions (Literal SDK Route)
-Built and submitted directly by Kairo's standalone script ([`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs)):
+Built and submitted directly by Kairo's own code — originally via
+[`scripts/register-sepolia.mjs`](scripts/register-sepolia.mjs), now productized
+in-app as the SDK route ([`lib/sdk.ts`](./lib/sdk.ts), [`lib/sdk-store.ts`](./lib/sdk-store.ts);
+verify the read path live with `node scripts/check-sdk.mjs`):
 
 | Flow | Sepolia Transaction Hash | Emitted Pool Event |
 |---|---|---|
