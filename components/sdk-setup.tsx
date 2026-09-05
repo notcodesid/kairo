@@ -41,33 +41,33 @@ function DisclosureBlock({
   }
 
   return (
-    <div className="rounded-2xl bg-surface-2/40 p-4 ring-1 ring-border">
+    <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[13px] font-semibold text-fg">Auditor disclosure</p>
         <button
           type="button"
           onClick={() => setRevealed((v) => !v)}
-          className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+          className="rounded-xl bg-surface px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
         >
           {revealed ? "Hide viewing key" : "Disclose viewing key"}
         </button>
       </div>
       {revealed && (
         <div className="mt-3 space-y-2">
-          <p className="text-[12px] leading-relaxed text-warning">
+          <p className="text-[12px] leading-relaxed text-muted">
             Handing this over reveals your full incoming payment graph on{" "}
             {network} to whoever holds it. It grants detection only — no one
             can move funds with it. Share solely with an auditor you trust.
           </p>
-          <p className="break-all font-mono text-[12px] text-muted select-all">
+          <p className="break-all font-mono text-[12px] text-fg select-all">
             {hex}
           </p>
           <button
             type="button"
             onClick={() => void copy()}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-fg hover:underline"
           >
-            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-fg font-bold" /> : <Copy size={13} />}
             {copied ? "Copied" : "Copy viewing key"}
           </button>
         </div>
@@ -104,7 +104,7 @@ function DiagnosticsRow() {
         onClick={() =>
           downloadDiagnostics(buildSnapshot({ network, registered, paymaster, locked }))
         }
-        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
       >
         Download diagnostics
       </button>
@@ -112,7 +112,7 @@ function DiagnosticsRow() {
         type="button"
         onClick={() => void report()}
         disabled={state === "sending"}
-        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg disabled:opacity-50"
+        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200 disabled:opacity-50"
       >
         {state === "sending"
           ? "Reporting…"
@@ -129,8 +129,7 @@ function DiagnosticsRow() {
 /**
  * Onboarding for the SDK route: the app holds the key, so first use means
  * generating (or importing) an embedded throwaway key and registering its
- * viewing key on-chain — RFP bullet 1, done inside Kairo itself.
- * Sepolia-first; mainnet SDK sends unlock when a proving URL is configured.
+ * viewing key on-chain.
  */
 export function SdkSetupCard() {
   const {
@@ -204,26 +203,26 @@ export function SdkSetupCard() {
   }
 
   const inputCls =
-    "h-13 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent";
+    "h-13 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black";
 
   const disclosure = <DisclosureBlock viewingKey={viewingKey} network={network} />;
 
   return (
-    <section className="overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
+    <section className="overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
             <KeyRound size={20} />
           </span>
           <div>
             <h2 className="text-[16px] font-bold text-fg">SDK wallet — app-held key</h2>
-            <p className="text-[12px] text-faint">
+            <p className="text-[12px] text-muted">
               Kairo generates the viewing key and registers it itself
             </p>
           </div>
         </div>
         {/* Network toggle */}
-        <div className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
+        <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
           {(["sepolia", "mainnet"] as SdkNetwork[]).map((n) => (
             <button
               key={n}
@@ -232,7 +231,7 @@ export function SdkSetupCard() {
               disabled={busy !== undefined}
               className={`rounded-full px-3 py-1 text-[12px] font-medium capitalize transition-all disabled:opacity-40 ${
                 network === n
-                  ? "bg-surface-2 text-accent ring-1 ring-border-strong font-semibold"
+                  ? "bg-black text-white font-semibold ring-1 ring-black shadow-sm"
                   : "text-muted hover:text-fg"
               }`}
             >
@@ -243,13 +242,13 @@ export function SdkSetupCard() {
       </div>
 
       {mainnetBlocked && (
-        <p className="mt-4 rounded-2xl bg-surface-2/40 p-4 text-[12px] leading-relaxed text-warning ring-1 ring-border">
+        <div className="mt-4 rounded-2xl border border-black/15 bg-surface-2 p-4 text-[12px] leading-relaxed text-fg">
           Mainnet SDK sends need a proving service URL, which StarkWare
           hasn&apos;t published yet. Discovery and key setup read live data, but
           proving stays on Sepolia until then — set{" "}
-          <span className="font-mono">NEXT_PUBLIC_PROVING_URL_MAINNET</span> to
+          <span className="font-mono font-semibold">NEXT_PUBLIC_PROVING_URL_MAINNET</span> to
           unlock it with zero code changes.
-        </p>
+        </div>
       )}
 
       {locked && hasStoredKey ? (
@@ -277,7 +276,9 @@ export function SdkSetupCard() {
             {busy === "unlock" ? "Unlocking…" : "Unlock key"}
           </PrimaryButton>
           {(error || localError) && (
-            <p className="text-[13px] text-danger">{localError ?? error}</p>
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {localError ?? error}
+            </div>
           )}
           <button
             type="button"
@@ -285,7 +286,7 @@ export function SdkSetupCard() {
               setUnlockPw("");
               forget();
             }}
-            className="text-[12px] text-faint hover:text-danger"
+            className="text-[12px] text-muted hover:text-fg hover:underline"
           >
             Forget this key entirely
           </button>
@@ -337,7 +338,7 @@ export function SdkSetupCard() {
                 <button
                   type="button"
                   onClick={() => setImportOpen(true)}
-                  className="flex h-13 items-center justify-center rounded-2xl bg-surface-2 px-5 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-surface-2/80"
+                  className="flex h-13 items-center justify-center rounded-2xl bg-surface-2 px-5 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
                 >
                   Import key
                 </button>
@@ -396,13 +397,15 @@ export function SdkSetupCard() {
             </form>
           )}
           {(error || localError) && (
-            <p className="text-[13px] text-danger">{localError ?? error}</p>
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {localError ?? error}
+            </div>
           )}
         </div>
       ) : !registered ? (
         <div className="mt-5 space-y-4">
-          <div className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-3 ring-1 ring-border">
-            <span className="break-all font-mono text-[12px] text-muted select-all">
+          <div className="flex items-center gap-2 rounded-2xl bg-surface-2 px-4 py-3 ring-1 ring-border">
+            <span className="break-all font-mono text-[12px] text-fg select-all">
               {address}
             </span>
             <button
@@ -411,13 +414,13 @@ export function SdkSetupCard() {
               className="ml-auto shrink-0 text-muted transition-colors hover:text-fg"
               aria-label="Copy address"
             >
-              {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+              {copied ? <Check size={14} className="text-fg font-bold" /> : <Copy size={14} />}
             </button>
             <a
               href={addressUrl(address, network)}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 text-accent hover:underline"
+              className="shrink-0 text-fg hover:underline font-semibold"
               aria-label="View on Voyager"
             >
               <ExternalLink size={14} />
@@ -425,19 +428,19 @@ export function SdkSetupCard() {
           </div>
 
           {(publicStrk ?? 0) === 0 && (
-            <p className="rounded-2xl bg-surface-2/40 p-4 text-[12px] leading-relaxed text-muted ring-1 ring-border">
+            <div className="rounded-2xl bg-surface-2 p-4 text-[12px] leading-relaxed text-muted ring-1 ring-border">
               Fund this address first —{" "}
               <a
                 href="https://faucet.starknet.io"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent hover:underline"
+                className="text-fg font-semibold underline hover:opacity-80"
               >
                 faucet.starknet.io
               </a>{" "}
               for Sepolia STRK. Registration and shielding both need a funded,
               deployed account.
-            </p>
+            </div>
           )}
 
           <ol className="space-y-3">
@@ -450,7 +453,7 @@ export function SdkSetupCard() {
                 key={step}
                 className="flex items-start gap-3 text-[13px] leading-relaxed text-muted"
               >
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] font-semibold text-accent ring-1 ring-border">
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] font-semibold text-fg ring-1 ring-border">
                   {i + 1}
                 </span>
                 <span>{step}</span>
@@ -467,7 +470,11 @@ export function SdkSetupCard() {
               </>
             )}
           </PrimaryButton>
-          {error && <p className="text-[13px] text-danger">{error}</p>}
+          {error && (
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {error}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <button
@@ -476,40 +483,40 @@ export function SdkSetupCard() {
                 setShowKey(false);
                 lock();
               }}
-              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
             >
               Lock key
             </button>
             <button
               type="button"
               onClick={() => setShowKey((v) => !v)}
-              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
             >
               {showKey ? "Hide backup" : "Back up key"}
             </button>
             <button
               type="button"
               onClick={forget}
-              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-faint ring-1 ring-transparent transition-colors hover:text-danger"
+              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-transparent transition-colors hover:text-fg hover:underline"
             >
               Forget
             </button>
           </div>
           {showKey && privateKey && (
-            <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-border">
-              <p className="text-[12px] leading-relaxed text-warning">
+            <div className="space-y-2 rounded-2xl bg-surface-2 p-4 ring-1 ring-border">
+              <p className="text-[12px] leading-relaxed text-muted">
                 Anyone with this key controls the account. Copy it somewhere
                 safe, then hide it.
               </p>
-              <p className="break-all font-mono text-[12px] text-muted select-all">
+              <p className="break-all font-mono text-[12px] text-fg select-all">
                 {privateKey}
               </p>
               <button
                 type="button"
                 onClick={() => void copyKey()}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-fg hover:underline"
               >
-                {keyCopied ? <Check size={13} /> : <Copy size={13} />}
+                {keyCopied ? <Check size={13} className="text-fg font-bold" /> : <Copy size={13} />}
                 {keyCopied ? "Copied" : "Copy private key"}
               </button>
             </div>
@@ -525,40 +532,40 @@ export function SdkSetupCard() {
                 setShowKey(false);
                 lock();
               }}
-              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
             >
               Lock key
             </button>
             <button
               type="button"
               onClick={() => setShowKey((v) => !v)}
-              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+              className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-zinc-200"
             >
               {showKey ? "Hide backup" : "Back up key"}
             </button>
             <button
               type="button"
               onClick={forget}
-              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-faint ring-1 ring-transparent transition-colors hover:text-danger"
+              className="rounded-xl px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-transparent transition-colors hover:text-fg hover:underline"
             >
               Forget
             </button>
           </div>
           {showKey && privateKey && (
-            <div className="space-y-2 rounded-2xl bg-surface p-4 ring-1 ring-border">
-              <p className="text-[12px] leading-relaxed text-warning">
+            <div className="space-y-2 rounded-2xl bg-surface-2 p-4 ring-1 ring-border">
+              <p className="text-[12px] leading-relaxed text-muted">
                 Anyone with this key controls the account. Copy it somewhere
                 safe, then hide it.
               </p>
-              <p className="break-all font-mono text-[12px] text-muted select-all">
+              <p className="break-all font-mono text-[12px] text-fg select-all">
                 {privateKey}
               </p>
               <button
                 type="button"
                 onClick={() => void copyKey()}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-fg hover:underline"
               >
-                {keyCopied ? <Check size={13} /> : <Copy size={13} />}
+                {keyCopied ? <Check size={13} className="text-fg font-bold" /> : <Copy size={13} />}
                 {keyCopied ? "Copied" : "Copy private key"}
               </button>
             </div>
@@ -568,7 +575,7 @@ export function SdkSetupCard() {
         </div>
       )}
 
-      <p className="mt-4 font-mono text-[11px] text-faint">
+      <p className="mt-4 font-mono text-[11px] text-muted">
         {hasKey
           ? registered
             ? `registered · ${truncateAddress(address, 8, 6)} · ${network}`

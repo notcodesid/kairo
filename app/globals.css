@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
-/* Kairo — Umbra Privacy Design Tokens */
+/* Kairo — Pure Monochrome Light Design Tokens (White & Black) */
 @theme {
-  --color-bg: #07070b;
-  --color-bg-subtle: #0d0c14;
-  --color-surface: #13121b;
-  --color-surface-2: #1b1926;
-  --color-surface-glass: rgba(19, 18, 27, 0.7);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.16);
-  --color-border-accent: rgba(157, 140, 255, 0.3);
-  --color-fg: #f3f2f8;
-  --color-muted: #9d9aa8;
-  --color-faint: #676474;
-  --color-accent: #9d8cff;
-  --color-accent-strong: #7b68ee;
-  --color-accent-glow: rgba(157, 140, 255, 0.15);
-  --color-success: #34d399;
-  --color-success-bg: rgba(52, 211, 153, 0.1);
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f9f9fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-surface-glass: rgba(255, 255, 255, 0.85);
+  --color-border: #e4e4e7;
+  --color-border-strong: #18181b;
+  --color-border-accent: #09090b;
+  --color-fg: #09090b;
+  --color-muted: #52525b;
+  --color-faint: #71717a;
+  --color-accent: #09090b;
+  --color-accent-strong: #27272a;
+  --color-accent-glow: rgba(0, 0, 0, 0.04);
+  --color-success: #09090b;
+  --color-success-bg: #f4f4f5;
+  --color-warning: #71717a;
+  --color-danger: #09090b;
 
   --radius-card: 22px;
   --radius-card-sm: 16px;
@@ -32,7 +32,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   * {
@@ -53,21 +53,21 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+    background: #09090b;
     color: #ffffff;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-surface-2) transparent;
+    scrollbar-color: #d4d4d8 transparent;
   }
 }
 
-/* Ambient glow accents */
+/* Ambient glow accents — clean neutral light */
 .kairo-glow {
   background: radial-gradient(
     70% 60% at 50% 0%,
-    color-mix(in srgb, var(--color-accent) 18%, transparent),
+    rgba(0, 0, 0, 0.03),
     transparent 80%
   );
 }
@@ -75,20 +75,20 @@
 .kairo-glow-emerald {
   background: radial-gradient(
     60% 60% at 50% 0%,
-    rgba(52, 211, 153, 0.12),
+    rgba(0, 0, 0, 0.02),
     transparent 75%
   );
 }
 
 .glass-panel {
-  background: rgba(19, 18, 27, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border);
 }
 
 .glass-panel-hover:hover {
-  background: rgba(27, 25, 38, 0.85);
+  background: #f4f4f5;
   border-color: var(--color-border-strong);
 }
 
@@ -100,3 +100,4 @@
 .animate-pulse-subtle {
   animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+

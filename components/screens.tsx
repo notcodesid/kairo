@@ -42,18 +42,16 @@ export function PrimaryButton({
   variant?: "accent" | "surface" | "emerald";
 }) {
   const bg =
-    variant === "accent"
-      ? "bg-accent hover:bg-accent-strong text-bg shadow-[0_0_20px_rgba(157,140,255,0.25)]"
-      : variant === "emerald"
-        ? "bg-success hover:bg-emerald-400 text-bg shadow-[0_0_20px_rgba(52,211,153,0.25)]"
-        : "bg-surface-2 hover:bg-surface-2/80 text-fg ring-1 ring-border";
+    variant === "surface"
+      ? "bg-surface-2 hover:bg-zinc-200 text-fg ring-1 ring-border"
+      : "bg-black hover:bg-zinc-800 text-white shadow-sm";
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled || busy}
-      className={`flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl px-5 text-[15px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 disabled:cursor-not-allowed ${bg}`}
+      className={`flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl px-5 text-[15px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed ${bg}`}
     >
       {busy && <Spinner size={18} />}
       {children}
@@ -87,7 +85,7 @@ export function DoneModal({
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-10 text-center animate-in fade-in zoom-in-95 duration-200">
-      <span className="flex size-18 items-center justify-center rounded-3xl bg-surface-2 text-success ring-1 ring-border shadow-[0_0_30px_rgba(52,211,153,0.15)]">
+      <span className="flex size-18 items-center justify-center rounded-3xl bg-black text-white ring-1 ring-black shadow-md">
         <Check size={32} />
       </span>
       <div className="space-y-2">
@@ -96,20 +94,20 @@ export function DoneModal({
       </div>
 
       {txHash && (
-        <div className="flex items-center gap-2 rounded-2xl bg-surface-2/70 p-1.5 ring-1 ring-border">
+        <div className="flex items-center gap-2 rounded-2xl bg-surface-2 p-1.5 ring-1 ring-border">
           <button
             type="button"
             onClick={copyHash}
-            className="flex h-9 items-center gap-2 rounded-xl bg-surface px-3 font-mono text-[12px] text-muted ring-1 ring-border transition-colors hover:text-fg hover:ring-border-strong"
+            className="flex h-9 items-center gap-2 rounded-xl bg-surface px-3 font-mono text-[12px] text-fg ring-1 ring-border transition-colors hover:bg-surface-2"
           >
             {truncateAddress(txHash, 10, 8)}
-            {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-fg font-bold" /> : <Copy size={13} />}
           </button>
           <a
             href={txUrl(txHash)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[12px] font-medium text-accent hover:bg-surface"
+            className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[12px] font-medium text-fg hover:underline"
           >
             Voyager <ExternalLink size={12} />
           </a>
@@ -163,14 +161,13 @@ export function DashboardTab({
       {/* Hero Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Shielded Balance Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
-          <div className="kairo-glow pointer-events-none absolute inset-x-0 top-0 h-32" />
+        <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
           <div className="relative space-y-3">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-[13px] font-semibold text-accent">
+              <span className="flex items-center gap-2 text-[13px] font-semibold text-fg">
                 <ShieldCheck size={16} /> Shielded Balance
               </span>
-              <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-medium text-accent ring-1 ring-accent/30">
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-fg ring-1 ring-border">
                 Private & Unlinkable
               </span>
             </div>
@@ -184,12 +181,12 @@ export function DashboardTab({
             </div>
 
             {pending > 0 ? (
-              <p className="flex items-center gap-2 text-[12px] text-success">
-                <span className="size-2 rounded-full bg-success animate-pulse" />
+              <p className="flex items-center gap-2 text-[12px] text-fg font-medium">
+                <span className="size-2 rounded-full bg-black animate-pulse" />
                 <span>+{formatAmount(pending)} {token} confirming note maturity (~5m)</span>
               </p>
             ) : (
-              <p className="text-[12px] text-faint">
+              <p className="text-[12px] text-muted">
                 Available for zero-knowledge private transfers and withdrawals.
               </p>
             )}
@@ -198,14 +195,14 @@ export function DashboardTab({
               <button
                 type="button"
                 onClick={() => onNavigate("transfer")}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-bg transition-all hover:bg-accent-strong"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-black px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
               >
                 <ArrowUpRight size={15} /> Send Privately
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate("receive")}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-surface-2/80"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
               >
                 <QrCode size={15} /> Receive
               </button>
@@ -214,13 +211,13 @@ export function DashboardTab({
         </div>
 
         {/* Public Balance Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-surface/70 p-6 ring-1 ring-border backdrop-blur-xl">
+        <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-[13px] font-semibold text-muted">
                 <Wallet size={16} /> Public Balance
               </span>
-              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-faint ring-1 ring-border">
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted ring-1 ring-border">
                 On-Chain Starknet
               </span>
             </div>
@@ -233,7 +230,7 @@ export function DashboardTab({
               <span className="text-xl font-semibold text-muted">{token}</span>
             </div>
 
-            <p className="text-[12px] text-faint">
+            <p className="text-[12px] text-muted">
               Standard Starknet balance visible on public block explorers.
             </p>
 
@@ -241,14 +238,14 @@ export function DashboardTab({
               <button
                 type="button"
                 onClick={() => onNavigate("shield")}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-surface-2/80"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
               >
-                <ShieldPlus size={15} className="text-accent" /> Shield Funds
+                <ShieldPlus size={15} className="text-fg" /> Shield Funds
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate("unshield")}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-surface-2/80 hover:text-fg"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-zinc-200 hover:text-fg"
               >
                 <ArrowLeftRight size={15} /> Unshield
               </button>
@@ -271,37 +268,37 @@ export function DashboardTab({
               key={item.label}
               type="button"
               onClick={() => onNavigate(item.tab)}
-              className="group flex flex-col items-start gap-1 rounded-2xl bg-surface/70 p-4 text-left ring-1 ring-border transition-all hover:bg-surface-2 hover:ring-border-strong"
+              className="group flex flex-col items-start gap-1 rounded-2xl bg-surface p-4 text-left ring-1 ring-border transition-all hover:bg-surface-2 hover:ring-border-strong"
             >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-surface-2 text-accent ring-1 ring-border group-hover:bg-accent group-hover:text-bg transition-colors">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-surface-2 text-fg ring-1 ring-border group-hover:bg-black group-hover:text-white transition-colors">
                 <Icon size={16} />
               </span>
               <span className="mt-1 text-[13px] font-semibold text-fg">{item.label}</span>
-              <span className="text-[11px] text-faint">{item.desc}</span>
+              <span className="text-[11px] text-muted">{item.desc}</span>
             </button>
           );
         })}
       </div>
 
       {/* Recent Activity Mini-Feed */}
-      <div className="rounded-3xl bg-surface/70 p-6 ring-1 ring-border">
-        <div className="flex items-center justify-between pb-4 border-b border-border/70">
+      <div className="rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm">
+        <div className="flex items-center justify-between pb-4 border-b border-border">
           <h3 className="text-[15px] font-semibold text-fg">Recent Privacy Activity</h3>
           <button
             type="button"
             onClick={() => onNavigate("activity")}
-            className="text-[13px] font-medium text-accent hover:underline"
+            className="text-[13px] font-semibold text-fg hover:underline"
           >
             View all history →
           </button>
         </div>
 
         {activity.length > 0 ? (
-          <ul className="mt-3 divide-y divide-border/40">
+          <ul className="mt-3 divide-y divide-border">
             {activity.slice(0, 4).map((item) => (
               <li key={item.id} className="py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-accent ring-1 ring-border">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-fg ring-1 ring-border">
                     {item.kind === "shield" ? (
                       <ShieldPlus size={16} />
                     ) : item.kind === "unshield" ? (
@@ -312,7 +309,7 @@ export function DashboardTab({
                   </span>
                   <div>
                     <p className="text-[13px] font-medium text-fg capitalize">{item.kind}</p>
-                    <p className="text-[11px] text-faint">{item.at}</p>
+                    <p className="text-[11px] text-muted">{item.at}</p>
                   </div>
                 </div>
 
@@ -321,7 +318,7 @@ export function DashboardTab({
                     {item.kind === "sent" ? "-" : "+"}
                     {formatAmount(item.amount)} {token}
                   </p>
-                  <span className="inline-block rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-medium text-success">
+                  <span className="inline-block rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-fg ring-1 ring-border">
                     Confirmed
                   </span>
                 </div>
@@ -329,7 +326,7 @@ export function DashboardTab({
             ))}
           </ul>
         ) : (
-          <div className="py-8 text-center text-faint">
+          <div className="py-8 text-center text-muted">
             <p className="text-[13px]">No recent pool activity recorded for this session.</p>
           </div>
         )}
@@ -409,25 +406,25 @@ export function ShieldTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface/90 p-6 sm:p-8 ring-1 ring-border backdrop-blur-xl">
-      <div className="flex items-center justify-between pb-5 border-b border-border/70">
+    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
+      <div className="flex items-center justify-between pb-5 border-b border-border">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
             <ShieldPlus size={20} />
           </span>
           <div>
             <h2 className="text-[17px] font-bold text-fg">Shield STRK</h2>
-            <p className="text-[12px] text-faint">Deposit public STRK into the STRK20 Privacy Pool</p>
+            <p className="text-[12px] text-muted">Deposit public STRK into the STRK20 Privacy Pool</p>
           </div>
         </div>
-        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted ring-1 ring-border">
+        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
           Deposit
         </span>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
         {/* Source & Destination Preview */}
-        <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-border space-y-3">
+        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-3">
           <div className="flex items-center justify-between text-[13px]">
             <span className="text-muted">From Public Wallet</span>
             <span className="font-mono font-medium text-fg">
@@ -435,13 +432,13 @@ export function ShieldTab({
             </span>
           </div>
           <div className="flex items-center justify-center">
-            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-accent ring-1 ring-border">
+            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-fg ring-1 ring-border">
               ↓
             </span>
           </div>
           <div className="flex items-center justify-between text-[13px]">
             <span className="text-muted">To Shielded Pool</span>
-            <span className="font-semibold text-success flex items-center gap-1.5">
+            <span className="font-semibold text-fg flex items-center gap-1.5">
               <Lock size={13} /> Private Balance
             </span>
           </div>
@@ -451,8 +448,8 @@ export function ShieldTab({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-[13px] font-semibold text-fg">Amount to Shield</label>
-            <span className="text-[12px] text-faint">
-              Available: <span className="font-mono text-fg">{formatAmount(publicBalance)} {token}</span>
+            <span className="text-[12px] text-muted">
+              Available: <span className="font-mono font-medium text-fg">{formatAmount(publicBalance)} {token}</span>
             </span>
           </div>
 
@@ -464,7 +461,7 @@ export function ShieldTab({
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
             />
             <div className="absolute inset-y-0 right-3 flex items-center gap-2">
               <span className="font-semibold text-muted text-[14px]">{token}</span>
@@ -479,29 +476,33 @@ export function ShieldTab({
                 type="button"
                 onClick={() => setPercentage(pct)}
                 disabled={busy || publicBalance <= 0}
-                className="h-8 rounded-xl bg-surface-2 text-[12px] font-medium text-muted ring-1 ring-border transition-colors hover:bg-surface-2/80 hover:text-fg disabled:opacity-40"
+                className="h-8 rounded-xl bg-surface-2 text-[12px] font-medium text-fg ring-1 ring-border transition-colors hover:bg-zinc-200 disabled:opacity-40"
               >
                 {pct === 100 ? "Max" : `${pct}%`}
               </button>
             ))}
           </div>
 
-          {error && <p className="text-[13px] text-danger pt-1">{error}</p>}
+          {error && (
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Fee & Privacy Info */}
-        <div className="rounded-2xl bg-surface-2/40 p-4 ring-1 ring-border space-y-2 text-[12px]">
+        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
           <div className="flex justify-between text-muted">
             <span>STRK20 Protocol Fee</span>
-            <span className="font-mono text-fg">{feeStrk} {token}</span>
+            <span className="font-mono font-semibold text-fg">{feeStrk} {token}</span>
           </div>
           <div className="flex justify-between text-muted">
             <span>Note Maturity Window</span>
-            <span className="text-fg">~5 minutes (10 blocks)</span>
+            <span className="text-fg font-medium">~5 minutes (10 blocks)</span>
           </div>
           <div className="flex justify-between text-muted">
             <span>Privacy Guarantee</span>
-            <span className="text-success font-medium">Zero Calldata Leakage</span>
+            <span className="text-fg font-semibold">Zero Calldata Leakage</span>
           </div>
         </div>
 
@@ -633,18 +634,18 @@ export function TransferTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface/90 p-6 sm:p-8 ring-1 ring-border backdrop-blur-xl">
-      <div className="flex items-center justify-between pb-5 border-b border-border/70">
+    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
+      <div className="flex items-center justify-between pb-5 border-b border-border">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
             <ArrowUpRight size={20} />
           </span>
           <div>
             <h2 className="text-[17px] font-bold text-fg">Private Transfer</h2>
-            <p className="text-[12px] text-faint">Relayer-submitted STARK proof note creation</p>
+            <p className="text-[12px] text-muted">Relayer-submitted STARK proof note creation</p>
           </div>
         </div>
-        <span className="rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-medium text-accent ring-1 ring-accent/30">
+        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
           ZK Shielded
         </span>
       </div>
@@ -655,15 +656,15 @@ export function TransferTab({
           <div className="flex items-center justify-between">
             <label className="text-[13px] font-semibold text-fg">Recipient Address</label>
             {checkingRecipient ? (
-              <span className="flex items-center gap-1 text-[11px] text-faint">
+              <span className="flex items-center gap-1 text-[11px] text-muted">
                 <Spinner size={12} /> Checking viewing key…
               </span>
             ) : recipientValid === true ? (
-              <span className="flex items-center gap-1 text-[11px] text-success font-medium">
+              <span className="flex items-center gap-1 text-[11px] text-fg font-semibold">
                 <Check size={12} /> Viewing key registered
               </span>
             ) : recipientValid === false ? (
-              <span className="text-[11px] text-warning">Viewing key not detected</span>
+              <span className="text-[11px] text-muted font-medium">Viewing key not detected</span>
             ) : null}
           </div>
 
@@ -674,17 +675,21 @@ export function TransferTab({
             onChange={(e) => setRecipient(e.target.value)}
             onBlur={handleRecipientBlur}
             disabled={busy}
-            className="h-14 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            className="h-14 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
           />
-          {errors.recipient && <p className="text-[13px] text-danger">{errors.recipient}</p>}
+          {errors.recipient && (
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {errors.recipient}
+            </div>
+          )}
         </div>
 
         {/* Amount Input */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-[13px] font-semibold text-fg">Amount</label>
-            <span className="text-[12px] text-faint">
-              Shielded: <span className="font-mono text-fg">{formatAmount(spendable)} {token}</span>
+            <span className="text-[12px] text-muted">
+              Shielded: <span className="font-mono font-medium text-fg">{formatAmount(spendable)} {token}</span>
             </span>
           </div>
 
@@ -696,36 +701,40 @@ export function TransferTab({
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
             />
             <div className="absolute inset-y-0 right-3 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setAmount(String(maxSend))}
                 disabled={busy}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-accent hover:bg-accent hover:text-bg transition-colors"
+                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg hover:bg-black hover:text-white transition-colors"
               >
                 Max
               </button>
               <span className="font-semibold text-muted text-[14px]">{token}</span>
             </div>
           </div>
-          {errors.amount && <p className="text-[13px] text-danger">{errors.amount}</p>}
+          {errors.amount && (
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {errors.amount}
+            </div>
+          )}
         </div>
 
         {/* Relayer & Privacy details */}
-        <div className="rounded-2xl bg-surface-2/40 p-4 ring-1 ring-border space-y-2 text-[12px]">
+        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
           <div className="flex justify-between text-muted">
             <span>AVNU Paymaster Gas</span>
-            <span className="text-success font-medium">Sponsored / Relayed</span>
+            <span className="text-fg font-semibold">Sponsored / Relayed</span>
           </div>
           <div className="flex justify-between text-muted">
             <span>STRK20 Pool Fee</span>
-            <span className="font-mono text-fg">{feeStrk} {token}</span>
+            <span className="font-mono font-semibold text-fg">{feeStrk} {token}</span>
           </div>
           <div className="flex justify-between text-muted">
             <span>Calldata Anonymity</span>
-            <span className="text-fg">Sender omitted from calldata</span>
+            <span className="text-fg font-medium">Sender omitted from calldata</span>
           </div>
         </div>
 
@@ -800,25 +809,25 @@ export function UnshieldTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface/90 p-6 sm:p-8 ring-1 ring-border backdrop-blur-xl">
-      <div className="flex items-center justify-between pb-5 border-b border-border/70">
+    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
+      <div className="flex items-center justify-between pb-5 border-b border-border">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
             <ArrowLeftRight size={20} />
           </span>
           <div>
             <h2 className="text-[17px] font-bold text-fg">Unshield STRK</h2>
-            <p className="text-[12px] text-faint">Withdraw shielded funds back to your public balance</p>
+            <p className="text-[12px] text-muted">Withdraw shielded funds back to your public balance</p>
           </div>
         </div>
-        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-muted ring-1 ring-border">
+        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
           Withdraw
         </span>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         {/* Source / Dest Preview */}
-        <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-border space-y-3">
+        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-3">
           <div className="flex items-center justify-between text-[13px]">
             <span className="text-muted">From Shielded Pool</span>
             <span className="font-mono font-medium text-fg">
@@ -826,7 +835,7 @@ export function UnshieldTab({
             </span>
           </div>
           <div className="flex items-center justify-center">
-            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-accent ring-1 ring-border">
+            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-fg ring-1 ring-border">
               ↓
             </span>
           </div>
@@ -842,8 +851,8 @@ export function UnshieldTab({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-[13px] font-semibold text-fg">Amount to Unshield</label>
-            <span className="text-[12px] text-faint">
-              Shielded: <span className="font-mono text-fg">{formatAmount(shieldedBalance)} {token}</span>
+            <span className="text-[12px] text-muted">
+              Shielded: <span className="font-mono font-medium text-fg">{formatAmount(shieldedBalance)} {token}</span>
             </span>
           </div>
 
@@ -855,30 +864,34 @@ export function UnshieldTab({
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
             />
             <div className="absolute inset-y-0 right-3 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setAmount(String(maxUnshield))}
                 disabled={busy}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-accent hover:bg-accent hover:text-bg transition-colors"
+                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg hover:bg-black hover:text-white transition-colors"
               >
                 Max
               </button>
               <span className="font-semibold text-muted text-[14px]">{token}</span>
             </div>
           </div>
-          {error && <p className="text-[13px] text-danger">{error}</p>}
+          {error && (
+            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Hygiene Warning (Umbra best practice) */}
-        <div className="rounded-2xl bg-surface-2/40 p-4 ring-1 ring-border space-y-2 text-[12px]">
-          <div className="flex items-center gap-1.5 text-warning font-medium">
+        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
+          <div className="flex items-center gap-1.5 text-fg font-semibold">
             <Info size={14} />
             <span>Privacy Note:</span>
           </div>
-          <p className="text-faint leading-relaxed">
+          <p className="text-muted leading-relaxed">
             Unshielding creates a public withdrawal event on Voyager. To maximize privacy, avoid immediately consolidating with known public identities.
           </p>
         </div>
@@ -912,37 +925,37 @@ export function ReceiveTab({
   }
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface/90 p-6 sm:p-8 ring-1 ring-border backdrop-blur-xl text-center">
-      <div className="flex items-center justify-between pb-5 border-b border-border/70 text-left">
+    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm text-center">
+      <div className="flex items-center justify-between pb-5 border-b border-border text-left">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
             <QrCode size={20} />
           </span>
           <div>
             <h2 className="text-[17px] font-bold text-fg">Receive Privately</h2>
-            <p className="text-[12px] text-faint">Umbra-style stealth note discovery</p>
+            <p className="text-[12px] text-muted">Umbra-style stealth note discovery</p>
           </div>
         </div>
-        <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-medium text-success ring-1 ring-success/30">
+        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg ring-1 ring-border">
           Active
         </span>
       </div>
 
       <div className="mt-8 flex flex-col items-center gap-6">
         {/* QR container */}
-        <div className="rounded-3xl bg-white p-5 shadow-2xl ring-4 ring-white/10">
+        <div className="rounded-3xl bg-white p-5 shadow-lg ring-1 ring-border">
           <QRCode
             value={address}
             size={200}
             bgColor="#ffffff"
-            fgColor="#07070b"
+            fgColor="#000000"
             aria-label="QR Code of Privacy Receive Address"
           />
         </div>
 
         {/* Address Display */}
         <div className="w-full space-y-3">
-          <div className="break-all rounded-2xl bg-surface px-4 py-3.5 font-mono text-[13px] leading-relaxed text-muted ring-1 ring-border select-all">
+          <div className="break-all rounded-2xl bg-surface-2 px-4 py-3.5 font-mono text-[13px] leading-relaxed text-fg ring-1 ring-border select-all">
             {address}
           </div>
 
@@ -960,9 +973,9 @@ export function ReceiveTab({
         </div>
 
         {/* Discovery Service explanation */}
-        <div className="rounded-2xl bg-surface-2/40 p-4 text-left ring-1 ring-border space-y-1.5 text-[12px] text-faint">
-          <div className="flex items-center gap-1.5 text-muted font-medium">
-            <ShieldCheck size={14} className="text-accent" />
+        <div className="rounded-2xl bg-surface-2 p-4 text-left ring-1 ring-border space-y-1.5 text-[12px] text-muted">
+          <div className="flex items-center gap-1.5 text-fg font-semibold">
+            <ShieldCheck size={14} />
             <span>How incoming money is discovered:</span>
           </div>
           <p className="leading-relaxed">
@@ -994,15 +1007,15 @@ export function ActivityTab({
   });
 
   return (
-    <div className="max-w-3xl mx-auto rounded-3xl bg-surface/90 p-6 sm:p-8 ring-1 ring-border backdrop-blur-xl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-border/70">
+    <div className="max-w-3xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-border">
         <div>
           <h2 className="text-[18px] font-bold text-fg">Privacy Activity History</h2>
-          <p className="text-[12px] text-faint">Track your deposits, private sends, and withdrawals</p>
+          <p className="text-[12px] text-muted">Track your deposits, private sends, and withdrawals</p>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
+        <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
           {(["all", "shield", "transfer", "unshield"] as const).map((f) => (
             <button
               key={f}
@@ -1010,7 +1023,7 @@ export function ActivityTab({
               onClick={() => setFilter(f)}
               className={`rounded-full px-3 py-1 text-[12px] font-medium capitalize transition-all ${
                 filter === f
-                  ? "bg-surface-2 text-accent ring-1 ring-border-strong font-semibold"
+                  ? "bg-black text-white font-semibold ring-1 ring-black shadow-sm"
                   : "text-muted hover:text-fg"
               }`}
             >
@@ -1021,11 +1034,11 @@ export function ActivityTab({
       </div>
 
       {filtered.length > 0 ? (
-        <div className="mt-4 divide-y divide-border/40">
+        <div className="mt-4 divide-y divide-border">
           {filtered.map((item) => (
             <div key={item.id} className="py-4 flex items-center justify-between">
               <div className="flex items-center gap-3.5">
-                <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-accent ring-1 ring-border">
+                <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
                   {item.kind === "shield" ? (
                     <ShieldPlus size={18} />
                   ) : item.kind === "unshield" ? (
@@ -1039,18 +1052,18 @@ export function ActivityTab({
                     <span className="text-[14px] font-semibold text-fg capitalize">
                       {item.kind === "sent" ? "Private Transfer" : item.kind}
                     </span>
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[10px] text-faint ring-1 ring-border">
+                    <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[10px] text-muted ring-1 ring-border">
                       STRK20 Pool
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[12px] text-faint mt-0.5">
+                  <div className="flex items-center gap-2 text-[12px] text-muted mt-0.5">
                     <span>{item.at}</span>
                     <span>•</span>
                     <a
                       href={txUrl(item.id)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-accent hover:underline font-mono text-[11px]"
+                      className="flex items-center gap-1 text-fg hover:underline font-mono text-[11px]"
                     >
                       {truncateAddress(item.id, 8, 6)} <ExternalLink size={10} />
                     </a>
@@ -1063,15 +1076,15 @@ export function ActivityTab({
                   {item.kind === "sent" ? "-" : "+"}
                   {formatAmount(item.amount)} {token}
                 </p>
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-                  <span className="size-1.5 rounded-full bg-success" /> Confirmed
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-fg">
+                  <span className="size-1.5 rounded-full bg-black" /> Confirmed
                 </span>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="py-16 text-center text-faint">
+        <div className="py-16 text-center text-muted">
           <p className="text-[14px]">No transactions found for filter &quot;{filter}&quot;.</p>
         </div>
       )}

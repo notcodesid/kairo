@@ -232,30 +232,13 @@ export function Spinner({ size = 20, ...p }: IconProps) {
   );
 }
 
-/** Kairo wordmark glyph — a soft, overlapping arc. */
+/** Kairo logo mark — two solid circular nodes (minimalist two-circle mark). */
 export function KairoMark({ size = 22, ...p }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" {...p}>
-      <path
-        d="M4 5c2.5 2.2 4.4 5.6 4.4 9.2 0 1.9-.5 3.6-1.3 5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeOpacity="0.55"
-      />
-      <path
-        d="M12 4c2.9 2.6 4.7 6.4 4.7 10.5 0 1.7-.3 3.3-.9 4.8"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M20 5c-2.5 2.2-4.4 5.6-4.4 9.2 0 1.9.5 3.6 1.3 5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeOpacity="0.55"
-      />
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" {...p}>
+      <circle cx="50" cy="39" r="15" />
+      <circle cx="35" cy="69" r="7" />
     </svg>
   );
 }
+

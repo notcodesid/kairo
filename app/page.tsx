@@ -8,6 +8,7 @@ import {
   ArrowLeftRight,
   ArrowDownLeft,
   Sparkles,
+  KairoMark,
 } from "@/components/icons";
 import { MOCK_WALLET, type ActivityItem } from "@/lib/mock";
 import { relativeTime } from "@/lib/format";
@@ -229,7 +230,7 @@ export default function Home() {
       <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Route switch for small screens (navbar switch is sm+) */}
         <div className="mb-6 flex justify-center sm:hidden">
-          <div className="flex items-center gap-1 rounded-full bg-surface/90 p-1 ring-1 ring-border/80">
+          <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
             {(
               [
                 { id: "wallet", label: "Wallet" },
@@ -245,7 +246,7 @@ export default function Home() {
                 }}
                 className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition-all ${
                   route === m.id
-                    ? "bg-surface-2 font-semibold text-accent ring-1 ring-border-strong"
+                    ? "bg-black font-semibold text-white ring-1 ring-black shadow-sm"
                     : "text-muted hover:text-fg"
                 }`}
               >
@@ -296,8 +297,8 @@ export default function Home() {
             </div>
           ) : (
           <div className="mx-auto max-w-2xl py-12 text-center">
-            <div className="inline-flex size-16 items-center justify-center rounded-3xl bg-surface-2 text-accent ring-1 ring-border shadow-[0_0_40px_rgba(157,140,255,0.25)]">
-              <Shield size={32} />
+            <div className="inline-flex size-16 items-center justify-center rounded-3xl bg-surface-2 text-fg ring-1 ring-border shadow-sm">
+              <KairoMark size={34} />
             </div>
             <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl text-fg">
               The Private Wallet for Starknet
@@ -310,7 +311,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setWalletModalOpen(true)}
-                className="flex h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-accent px-8 text-[15px] font-semibold text-bg transition-all hover:bg-accent-strong hover:shadow-[0_0_25px_rgba(157,140,255,0.4)]"
+                className="flex h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-black px-8 text-[15px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
               >
                 Connect Starknet Wallet
               </button>
@@ -319,7 +320,7 @@ export default function Home() {
                 onClick={() => setDemo("on")}
                 className="flex h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-surface px-6 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-surface-2"
               >
-                <Sparkles size={15} className="text-accent" /> Launch Demo Mode
+                <Sparkles size={15} className="text-fg" /> Launch Demo Mode
               </button>
             </div>
 
@@ -339,9 +340,9 @@ export default function Home() {
                   desc: "AVNU Paymaster submits transactions so your address never leaks in calldata.",
                 },
               ].map((f) => (
-                <div key={f.title} className="rounded-3xl bg-surface/70 p-5 ring-1 ring-border backdrop-blur-md">
+                <div key={f.title} className="rounded-3xl bg-surface p-5 ring-1 ring-border shadow-sm">
                   <h3 className="text-[14px] font-semibold text-fg">{f.title}</h3>
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-faint">{f.desc}</p>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -458,7 +459,7 @@ export default function Home() {
 
       {/* Mobile Bottom Navigation Bar */}
       {isConnected && (
-        <div className="sticky bottom-0 z-40 w-full border-t border-border/80 bg-bg/90 backdrop-blur-xl md:hidden">
+        <div className="sticky bottom-0 z-40 w-full border-t border-border bg-bg/95 backdrop-blur-xl md:hidden">
           <div className="flex h-16 items-center justify-around px-2">
             {[
               { id: "dashboard", label: "Overview", icon: Shield },
@@ -475,10 +476,10 @@ export default function Home() {
                   type="button"
                   onClick={() => setActiveTab(tab.id as NavTab)}
                   className={`flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-1.5 transition-colors ${
-                    active ? "text-accent font-semibold" : "text-muted hover:text-fg"
+                    active ? "text-fg font-semibold" : "text-muted hover:text-fg"
                   }`}
                 >
-                  <Icon size={18} className={active ? "text-accent" : "text-muted"} />
+                  <Icon size={18} className={active ? "text-fg" : "text-muted"} />
                   <span className="text-[10px]">{tab.label}</span>
                 </button>
               );

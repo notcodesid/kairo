@@ -39,21 +39,21 @@ export function SetupCard({
   ];
 
   return (
-    <section className="overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
+    <section className="overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-accent/15 text-accent ring-1 ring-accent/30">
+        <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
           <Shield size={20} />
         </span>
         <div>
           <h2 className="text-[16px] font-bold text-fg">Activate Private Balances</h2>
-          <p className="text-[12px] text-faint">One-time cryptographic viewing key registration</p>
+          <p className="text-[12px] text-muted">One-time cryptographic viewing key registration</p>
         </div>
       </div>
 
       <ol className="mt-5 space-y-3">
         {steps.map((step, i) => (
           <li key={step} className="flex items-start gap-3 text-[13px] leading-relaxed text-muted">
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] font-semibold text-accent ring-1 ring-border">
+            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-2 font-mono text-[11px] font-semibold text-fg ring-1 ring-border">
               {i + 1}
             </span>
             <span>{step}</span>
@@ -66,7 +66,7 @@ export function SetupCard({
           type="button"
           onClick={check}
           disabled={checking}
-          className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-accent px-6 text-[14px] font-semibold text-bg transition-all hover:bg-accent-strong hover:shadow-[0_0_20px_rgba(157,140,255,0.3)] disabled:opacity-60"
+          className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-black px-6 text-[14px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800 disabled:opacity-60"
         >
           {checking ? (
             <>
@@ -80,7 +80,7 @@ export function SetupCard({
         </button>
 
         {outcome === "missing" && !checking && (
-          <p role="status" className="text-[12px] leading-relaxed text-danger">
+          <div role="status" className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] leading-relaxed text-fg font-medium">
             No viewing key on the pool for this account yet. Waiting longer won’t
             help — the Ready Shield has to succeed first.{" "}
             {address && (
@@ -88,13 +88,13 @@ export function SetupCard({
                 href={addressUrl(address, network)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-accent underline-offset-2 hover:underline"
+                className="text-fg font-semibold underline underline-offset-2 hover:opacity-80"
               >
                 Check this address on Voyager
               </a>
             )}{" "}
             for a ViewingKeySet or Deposit event.
-          </p>
+          </div>
         )}
       </div>
     </section>
@@ -138,21 +138,12 @@ export function StatusNotice({
   return (
     <div
       role="status"
-      className={`flex items-center gap-3 rounded-2xl p-4 text-[13px] leading-relaxed ring-1 backdrop-blur-md ${
-        tone === "problem"
-          ? "bg-danger/10 text-danger ring-danger/25"
-          : tone === "setup"
-            ? "bg-accent/10 text-fg ring-accent/25"
-            : "bg-surface/80 text-muted ring-border"
-      }`}
+      className="flex items-center gap-3 rounded-2xl border border-black/15 bg-surface-2 p-4 text-[13px] leading-relaxed text-fg shadow-sm"
     >
       {tone === "info" ? (
-        <Spinner size={16} className="shrink-0 text-faint" />
+        <Spinner size={16} className="shrink-0 text-fg" />
       ) : (
-        <Shield
-          size={16}
-          className={`shrink-0 ${tone === "setup" ? "text-accent" : "text-danger"}`}
-        />
+        <Shield size={16} className="shrink-0 text-fg" />
       )}
       <span>{text}</span>
     </div>

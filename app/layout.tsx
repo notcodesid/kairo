@@ -20,16 +20,17 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Kairo",
   },
   icons: {
+    icon: "/icons/icon.svg",
     apple: "/icons/apple-touch-icon.png",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0a10",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
