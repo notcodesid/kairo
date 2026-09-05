@@ -6,7 +6,125 @@ import { addressUrl } from "@/lib/explorer";
 import { truncateAddress } from "@/lib/format";
 import { mainnetProverUrl, type SdkNetwork } from "@/lib/sdk";
 import { useSdkStore } from "@/lib/sdk-store";
+import {
+  buildSnapshot,
+  downloadDiagnostics,
+  reportDiagnostics,
+} from "@/lib/diagnostics";
 import { PrimaryButton } from "@/components/screens";
+
+/**
+ * Selective disclosure for auditors: reveals the viewing key (detection
+ * only — it cannot move funds), with explicit warnings. This is the
+ * "auditable on demand, not a mixer" half of the STRK20 story.
+ */
+function DisclosureBlock({
+  viewingKey,
+  network,
+}: {
+  viewingKey?: bigint;
+  network: SdkNetwork;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  if (!viewingKey) return null;
+  const hex = `0x${viewingKey.toString(16)}`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard?.writeText(hex);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-surface-2/40 p-4 ring-1 ring-border">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] font-semibold text-fg">Auditor disclosure</p>
+        <button
+          type="button"
+          onClick={() => setRevealed((v) => !v)}
+          className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+        >
+          {revealed ? "Hide viewing key" : "Disclose viewing key"}
+        </button>
+      </div>
+      {revealed && (
+        <div className="mt-3 space-y-2">
+          <p className="text-[12px] leading-relaxed text-warning">
+            Handing this over reveals your full incoming payment graph on{" "}
+            {network} to whoever holds it. It grants detection only — no one
+            can move funds with it. Share solely with an auditor you trust.
+          </p>
+          <p className="break-all font-mono text-[12px] text-muted select-all">
+            {hex}
+          </p>
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="flex items-center gap-1.5 text-[12px] font-medium text-accent hover:underline"
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? "Copied" : "Copy viewing key"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * User-triggered diagnostics: download a JSON snapshot or POST it to the
+ * server log. Nothing leaves the browser unprompted; snapshots contain action
+ * outcomes only — never keys.
+ */
+function DiagnosticsRow() {
+  const { network, registered, paymaster, locked } = useSdkStore();
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+
+  async function report() {
+    setState("sending");
+    try {
+      await reportDiagnostics(buildSnapshot({ network, registered, paymaster, locked }));
+      setState("sent");
+      setTimeout(() => setState("idle"), 2500);
+    } catch {
+      setState("failed");
+      setTimeout(() => setState("idle"), 2500);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          downloadDiagnostics(buildSnapshot({ network, registered, paymaster, locked }))
+        }
+        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg"
+      >
+        Download diagnostics
+      </button>
+      <button
+        type="button"
+        onClick={() => void report()}
+        disabled={state === "sending"}
+        className="rounded-xl bg-surface-2 px-3.5 py-2 text-[12px] font-semibold text-muted ring-1 ring-border transition-colors hover:text-fg disabled:opacity-50"
+      >
+        {state === "sending"
+          ? "Reporting…"
+          : state === "sent"
+            ? "Reported ✓"
+            : state === "failed"
+              ? "Report failed"
+              : "Report to team"}
+      </button>
+    </div>
+  );
+}
 
 /**
  * Onboarding for the SDK route: the app holds the key, so first use means
@@ -27,6 +145,7 @@ export function SdkSetupCard() {
     locked,
     hasStoredKey,
     privateKey,
+    viewingKey,
     setNetwork,
     generate,
     importKey,
@@ -86,6 +205,8 @@ export function SdkSetupCard() {
 
   const inputCls =
     "h-13 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent";
+
+  const disclosure = <DisclosureBlock viewingKey={viewingKey} network={network} />;
 
   return (
     <section className="overflow-hidden rounded-3xl bg-surface/90 p-6 ring-1 ring-border backdrop-blur-xl transition-all">
@@ -393,6 +514,7 @@ export function SdkSetupCard() {
               </button>
             </div>
           )}
+          {disclosure}
         </div>
       ) : (
         <div className="mt-5 space-y-3">
@@ -441,6 +563,8 @@ export function SdkSetupCard() {
               </button>
             </div>
           )}
+          {disclosure}
+          <DiagnosticsRow />
         </div>
       )}
 
