@@ -44,6 +44,7 @@ import {
   type EncryptedKey,
 } from "@/lib/keystore";
 import { amountToUnits, feltToAmount } from "@/lib/format";
+import { logEvent } from "@/lib/diagnostics";
 import { STRK } from "@/lib/chain";
 
 export interface SdkActivity {
@@ -362,10 +363,12 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
         privateKey,
         network,
       });
+      logEvent({ route: "sdk", action: "sdk:register", ok: true, network });
       await get().refresh();
       return txHash;
     } catch (e) {
       const msg = friendlySdkError(e, network);
+      logEvent({ route: "sdk", action: "sdk:register", ok: false, error: msg, network });
       set({ error: msg });
       throw new Error(msg);
     } finally {
@@ -446,6 +449,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
         network,
         amount: amountToUnits(amount, STRK.decimals),
       });
+      logEvent({ route: "sdk", action: "sdk:shield", ok: true, network });
       set({
         history: recordActivity(network, address, {
           kind: "shield",
@@ -457,7 +461,9 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       void get().refresh();
       return txHash;
     } catch (e) {
-      throw new Error(friendlySdkError(e, network));
+      const msg = friendlySdkError(e, network);
+      logEvent({ route: "sdk", action: "sdk:shield", ok: false, error: msg, network });
+      throw new Error(msg);
     }
   },
 
@@ -508,6 +514,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       const cfg = sdkConfigFor(network);
       await new RpcProvider({ nodeUrl: cfg.rpcUrl }).waitForTransaction(txHash);
       console.info("[sdk] sponsored send tx:", txHash);
+      logEvent({ route: "sdk", action: "sdk:send", stage: "sponsored", ok: true, network });
       set({
         paymaster: "sponsored",
         history: recordActivity(network, address, {
@@ -532,6 +539,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
         recipient,
         amount: units,
       });
+      logEvent({ route: "sdk", action: "sdk:send", stage: "self-pay", ok: true, network });
       set({
         history: recordActivity(network, address, {
           kind: "sent",
@@ -543,7 +551,9 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       void get().refresh();
       return txHash;
     } catch (e) {
-      throw new Error(friendlySdkError(e, network));
+      const msg = friendlySdkError(e, network);
+      logEvent({ route: "sdk", action: "sdk:send", stage: "self-pay", ok: false, error: msg, network });
+      throw new Error(msg);
     }
   },
 
@@ -559,6 +569,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
         network,
         amount: amountToUnits(amount, STRK.decimals),
       });
+      logEvent({ route: "sdk", action: "sdk:unshield", ok: true, network });
       set({
         history: recordActivity(network, address, {
           kind: "unshield",
@@ -570,7 +581,9 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       void get().refresh();
       return txHash;
     } catch (e) {
-      throw new Error(friendlySdkError(e, network));
+      const msg = friendlySdkError(e, network);
+      logEvent({ route: "sdk", action: "sdk:unshield", ok: false, error: msg, network });
+      throw new Error(msg);
     }
   },
 }));
