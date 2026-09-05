@@ -168,6 +168,11 @@ All 3 transaction(s) pass the submission checks.
 - [x] Private send — real `transfer` action; tx hash surfaced with copy +
       Voyager link
 - [x] Real balances — shielded via the Wallet API, public via RPC
+- [x] SDK route in-app — embedded key (password-encrypted), self-registration,
+      contract discovery, SDK shield/send/unshield, AVNU sponsored relay with
+      self-pay fallback, auditor disclosure, diagnostics export
+- [x] P1 reliability — prover retry, simulate-first gas checks, bounded waits,
+      background discovery polling
 - [x] 3 mainnet proof transactions in `strk20.json` (`node scripts/verify-txs.mjs` checks them)
 - [ ] 3-min demo video + deployed demo URL
 
@@ -176,6 +181,24 @@ All 3 transaction(s) pass the submission checks.
 Verifiable submission data lives in [`strk20.json`](./strk20.json): three
 mainnet transactions that touch the STRK20 pool, any contracts we deploy, and
 the demo video/URL.
+
+## Submission runbook (what's left, in order)
+
+Requires a human (wallet approvals, funding, recording) — code is ready:
+
+1. **Sepolia SDK click-through** — open the app, switch to `SDK key`,
+   generate a throwaway with a password, fund it at `faucet.starknet.io`,
+   `Generate + register viewing key`, then Shield → private Send → Unshield.
+   Keep the tx hashes (proves the in-app literal route end to end).
+2. **(Optional) Sponsored-mode footage** — set `PAYMASTER_API_KEY` on the
+   deployment, redo one Send, confirm the footer reads
+   `sends via paymaster relay`.
+3. **Record the demo** — follow [`docs/demo-script.md`](./docs/demo-script.md)
+   (≤3:00, real mainnet Ready pass for the scoring txs, `?demo=1` b-roll only).
+4. **Deploy** — `npm run build` is green; deploy and put the URL in
+   `strk20.json` → `demo_url`, video link in `demo_video`.
+5. **Re-verify** — `node scripts/verify-txs.mjs` must print all-✅ before you
+   submit.
 
 ## License
 
