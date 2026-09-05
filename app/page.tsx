@@ -15,7 +15,7 @@ import {
   startWalletDiscovery,
   useWalletStore,
 } from "@/lib/wallet-store";
-import { initSdkStore, useSdkStore } from "@/lib/sdk-store";
+import { initSdkStore, startSdkPolling, useSdkStore } from "@/lib/sdk-store";
 import { POOL_FEE_STRK, SEPOLIA_CHAIN_ID, canReceivePrivately } from "@/lib/chain";
 import { Navbar, type NavTab } from "@/components/navbar";
 import { WalletModal } from "@/components/wallet-modal";
@@ -191,6 +191,12 @@ export default function Home() {
     }, 5000);
     return () => clearInterval(id);
   }, [real, isConnected, strk20, address, chainId, refresh]);
+
+  // Background discovery polling for the SDK route (visible tab only).
+  useEffect(() => {
+    if (!(sdkMode && sdkReady && sdk.registered)) return;
+    return startSdkPolling();
+  }, [sdkMode, sdkReady, sdk.registered]);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-fg">

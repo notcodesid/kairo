@@ -191,6 +191,85 @@ export async function provingBlockId(provider: ProviderInterface) {
   return (await provider.getBlockNumber()) - 10;
 }
 
+/** Bounded sleep-loop: wait until `createdBlock + 10` is provable. */
+export async function waitUntilMature(
+  rpc: ProviderInterface,
+  createdBlock: number,
+  label = "note maturity",
+  timeoutMs = 20 * 60_000,
+): Promise<number> {
+  const started = Date.now();
+  let latest = await rpc.getBlockNumber();
+  while (latest - 10 < createdBlock + 10) {
+    if (Date.now() - started > timeoutMs) {
+      throw new Error(
+        `Timed out waiting for ${label} — the chain didn't advance in time. Try again later.`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, 10_000));
+    latest = await rpc.getBlockNumber();
+  }
+  return latest - 10;
+}
+
+/**
+ * Minimal structural type for a staged (un-executed) builder. Loose on
+ * purpose: the SDK bundles its own starknet copy whose ProviderInterface is
+ * nominally incompatible with the app's starknet — runtime-identical,
+ * type-divergent. Only `simulate` output shape is relied upon, defensively.
+ */
+type StagedBuilder = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  simulate: (opts: any) => Promise<any>;
+};
+
+/**
+ * Best-effort gas estimate via the SDK's mock-proof simulation. Returns the
+ * estimated max fee in STRK wei, or undefined when estimation itself fails
+ * (estimation must never block a valid transaction).
+ */
+async function estimateGas(
+  account: Account,
+  rpc: ProviderInterface,
+  stage: () => StagedBuilder,
+): Promise<bigint | undefined> {
+  try {
+    const sim = await stage().simulate({ node: rpc });
+    const est = await account.estimateInvokeFee(sim.callAndProof.call, {
+      proofFacts: sim.callAndProof.proof.proofFacts,
+      proof: sim.callAndProof.proof.data,
+    });
+    const overall = BigInt(
+      (est as { overall_fee?: bigint | string | number }).overall_fee ?? 0,
+    );
+    return overall > 0n ? overall : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Fail fast when the account can't cover estimated gas (self-pay path). */
+async function assertCoversGas(
+  account: Account,
+  rpc: ProviderInterface,
+  network: SdkNetwork,
+  gasEst: bigint | undefined,
+) {
+  if (gasEst === undefined) return;
+  const res = await rpc.callContract({
+    contractAddress: STRK.address,
+    entrypoint: "balanceOf",
+    calldata: [account.address],
+  });
+  const balance = BigInt(res[0] ?? "0") + (BigInt(res[1] ?? "0") << 128n);
+  if (balance < gasEst) {
+    throw new Error(
+      `Estimated gas (~${feltToAmount(gasEst, STRK.decimals)} STRK) exceeds this account's ` +
+        `${feltToAmount(balance, STRK.decimals)} STRK. Top up, then retry — nothing was submitted.`,
+    );
+  }
+}
+
 export interface SdkTransfersArgs {
   /** Account whose signer the app holds (embedded / throwaway — never a wallet-held account). */
   account: Account;
@@ -225,7 +304,12 @@ export function createSdkTransfers({
   return createPrivateTransfers({
     account,
     viewingKeyProvider: { getViewingKey: async () => viewingKey },
-    provingProvider: { url: cfg.proverUrl, chainId: cfg.chainId as never },
+    provingProvider: {
+      url: cfg.proverUrl,
+      chainId: cfg.chainId as never,
+      // Transient `-32005` busy responses back off instead of failing the tx.
+      retry: { maxRetries: 5, baseDelayMs: 1000 },
+    },
     discoveryProvider: new ContractDiscoveryProvider(pool),
     poolContractAddress: cfg.poolAddress,
   });
@@ -287,10 +371,9 @@ export async function generateAndRegisterViewingKey(args: {
     provider: rpc,
   });
   const block = await provingBlockId(rpc);
-  const { callAndProof } = await transfers
-    .build()
-    .register()
-    .execute({ provingBlockId: block });
+  const stageIt = () => transfers.build().register();
+  await assertCoversGas(account, rpc, network, await estimateGas(account, rpc, stageIt));
+  const { callAndProof } = await stageIt().execute({ provingBlockId: block });
   const proof = callAndProof.proof;
   const tx = await account.execute(callAndProof.call, {
     proofFacts: proof?.proofFacts?.length ? proof.proofFacts : undefined,
@@ -364,15 +447,6 @@ async function submitCallAndProof(
   return tx.transaction_hash;
 }
 
-async function waitMaturity(rpc: ProviderInterface, created: number) {
-  let latest = await rpc.getBlockNumber();
-  while (latest - 10 < created + 10) {
-    await new Promise((r) => setTimeout(r, 10_000));
-    latest = await rpc.getBlockNumber();
-  }
-  return latest - 10;
-}
-
 /** Pool fee in raw units (for allowance math). */
 async function poolFeeUnits(
   rpc: ProviderInterface,
@@ -431,11 +505,14 @@ export async function sdkShield(args: {
     provider: rpc,
   });
   const block = await provingBlockId(rpc);
-  const { callAndProof } = await transfers
-    .build({ autoSetup: true })
-    .with(token, (t) => t.deposit({ amount }))
-    .surplusTo(account.address)
-    .execute({ provingBlockId: block });
+  const stageIt = () =>
+    transfers
+      .build({ autoSetup: true })
+      .with(token, (t) => t.deposit({ amount }))
+      .surplusTo(account.address);
+  // Simulate first: fail before submission when gas exceeds the balance.
+  await assertCoversGas(account, rpc, network, await estimateGas(account, rpc, stageIt));
+  const { callAndProof } = await stageIt().execute({ provingBlockId: block });
   return submitCallAndProof(account, rpc, callAndProof, "shield");
 }
 
@@ -453,7 +530,8 @@ export async function sdkSendPrivate(args: {
   const cfg = sdkConfigFor(network);
   const rpc =
     args.provider ?? new RpcProvider({ nodeUrl: cfg.rpcUrl });
-  const { callAndProof } = await sdkBuildPrivateTransfer(args);
+  const { callAndProof, estimate } = await sdkBuildPrivateTransfer(args);
+  await assertCoversGas(account, rpc, network, await estimate());
   return submitCallAndProof(account, rpc, callAndProof, "private send");
 }
 
@@ -480,6 +558,8 @@ export async function sdkBuildPrivateTransfer(args: {
     call: Parameters<Account["execute"]>[0];
     proof: { proofFacts: string[]; data: string };
   };
+  /** Best-effort gas estimate (rebuilds + simulates; relayer path ignores it). */
+  estimate: () => Promise<bigint | undefined>;
 }> {
   const { account, viewingKey, network, recipient, amount } = args;
   const cfg = sdkConfigFor(network);
@@ -515,23 +595,24 @@ export async function sdkBuildPrivateTransfer(args: {
     );
   }
   const note = covering.reduce((a, b) => (a.amount <= b.amount ? a : b));
-  const block = await waitMaturity(rpc, Number(note.created ?? 0));
+  const block = await waitUntilMature(rpc, Number(note.created ?? 0));
   if (!sponsoredFee) {
     const fee = await poolFeeUnits(rpc, cfg.poolAddress);
     await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
   }
-  const { callAndProof } = await transfers
-    .build({ autoSetup: true })
-    .surplusTo(account.address)
-    .with(token, (t) => {
-      t.inputs(note).transfer({ recipient, amount });
-      if (sponsoredFee) {
-        // Paymaster reimbursement, proven inside the same tx.
-        t.withdraw({ recipient: sponsoredFee.recipient, amount: sponsoredFee.amount });
-      }
-    })
-    .execute({ provingBlockId: block });
-  return { callAndProof };
+  const stageIt = () =>
+    transfers
+      .build({ autoSetup: true })
+      .surplusTo(account.address)
+      .with(token, (t) => {
+        t.inputs(note).transfer({ recipient, amount });
+        if (sponsoredFee) {
+          // Paymaster reimbursement, proven inside the same tx.
+          t.withdraw({ recipient: sponsoredFee.recipient, amount: sponsoredFee.amount });
+        }
+      });
+  const { callAndProof } = await stageIt().execute({ provingBlockId: block });
+  return { callAndProof, estimate: () => estimateGas(account, rpc, stageIt) };
 }
 
 /** Unshield (withdraw to own address) via the SDK. Returns tx hash. */
@@ -561,16 +642,18 @@ export async function sdkUnshield(args: {
   const spendable = list.filter((n) => !n.open);
   if (spendable.length === 0) throw new Error("No spendable notes — shield first.");
   const note = spendable.reduce((a, b) => (a.amount >= b.amount ? a : b));
-  const block = await waitMaturity(rpc, Number(note.created ?? 0));
+  const block = await waitUntilMature(rpc, Number(note.created ?? 0));
   const fee = await poolFeeUnits(rpc, cfg.poolAddress);
   await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
-  const { callAndProof } = await transfers
-    .build()
-    .surplusTo(account.address)
-    .with(token, (t) =>
-      t.inputs(note).withdraw({ amount, recipient: account.address }),
-    )
-    .execute({ provingBlockId: block });
+  const stageIt = () =>
+    transfers
+      .build()
+      .surplusTo(account.address)
+      .with(token, (t) =>
+        t.inputs(note).withdraw({ amount, recipient: account.address }),
+      );
+  await assertCoversGas(account, rpc, network, await estimateGas(account, rpc, stageIt));
+  const { callAndProof } = await stageIt().execute({ provingBlockId: block });
   return submitCallAndProof(account, rpc, callAndProof, "unshield");
 }
 

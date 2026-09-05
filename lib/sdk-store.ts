@@ -30,6 +30,7 @@ import {
   sdkSendPrivate,
   sdkShield,
   sdkUnshield,
+  waitUntilMature,
   type SdkNetwork,
 } from "@/lib/sdk";
 import {
@@ -354,12 +355,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
       if (dep.deployed) {
         const cfg = sdkConfigFor(network);
         const rpc = new RpcProvider({ nodeUrl: cfg.rpcUrl });
-        let latest = await rpc.getBlockNumber();
-        const need = (dep.block ?? latest) + 10;
-        while (latest - 10 < need) {
-          await new Promise((r) => setTimeout(r, 10_000));
-          latest = await rpc.getBlockNumber();
-        }
+        await waitUntilMature(rpc, dep.block ?? (await rpc.getBlockNumber()), "account deployment");
       }
       const { txHash } = await generateAndRegisterViewingKey({
         account,
@@ -587,4 +583,19 @@ export function initSdkStore() {
   const { network } = useSdkStore.getState();
   const hasStoredKey = Boolean(loadCipher(network) ?? loadLegacy(network));
   useSdkStore.setState({ hasStoredKey, locked: true });
+}
+
+/**
+ * Poll refresh() while unlocked + registered and the tab is visible.
+ * Skips while an action is in flight. Returns cleanup for useEffect.
+ */
+export function startSdkPolling(intervalMs = 60_000): () => void {
+  const id = setInterval(() => {
+    if (document.hidden) return;
+    const s = useSdkStore.getState();
+    if (s.status !== "ready" || !s.registered || !s.address) return;
+    if (s.busy) return;
+    void s.refresh();
+  }, intervalMs);
+  return () => clearInterval(id);
 }
