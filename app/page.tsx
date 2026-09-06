@@ -1,15 +1,9 @@
 "use client";
 
+import Image from "next/image";
+
 import { useEffect, useState, useMemo, useSyncExternalStore } from "react";
-import {
-  Shield,
-  ShieldPlus,
-  ArrowUpRight,
-  ArrowLeftRight,
-  ArrowDownLeft,
-  Sparkles,
-  KairoMark,
-} from "@/components/icons";
+import { motion, AnimatePresence } from "motion/react";
 import { MOCK_WALLET, type ActivityItem } from "@/lib/mock";
 import { relativeTime } from "@/lib/format";
 import {
@@ -25,6 +19,7 @@ import {
   DashboardTab,
   ShieldTab,
   TransferTab,
+  SwapTab,
   UnshieldTab,
   ReceiveTab,
   ActivityTab,
@@ -66,6 +61,50 @@ function getServerNow() {
   return 0;
 }
 
+const NAV_TABS = [
+  { id: "shield", label: "Shield" },
+  { id: "transfer", label: "Private Send" },
+  { id: "swap", label: "Private Swap" },
+  { id: "unshield", label: "Unshield" },
+] as const;
+
+function NavigationTabs({
+  activeTab,
+  onSelect,
+}: {
+  activeTab: NavTab;
+  onSelect: (tab: NavTab) => void;
+}) {
+  return (
+    <nav className="inline-flex items-center gap-1 sm:gap-2 relative">
+      {NAV_TABS.map((tab) => {
+        const active = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onSelect(tab.id as NavTab)}
+            className={`relative rounded-full px-5 py-2 text-[14px] sm:text-[15px] font-semibold transition-colors duration-150 focus-visible:outline-none ${
+              active
+                ? "text-white"
+                : "text-[#52525b] hover:text-fg"
+            }`}
+          >
+            {active && (
+              <motion.span
+                layoutId="activeTabIndicator"
+                className="absolute inset-0 rounded-full strk-pill-active"
+                transition={{ type: "spring", stiffness: 450, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function Home() {
   const {
     address,
@@ -88,7 +127,7 @@ export default function Home() {
     history,
   } = useWalletStore();
 
-  const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
+  const [activeTab, setActiveTab] = useState<NavTab>("shield");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [demo, setDemo] = useState<DemoMode>(getInitialDemo);
   const [route, setRoute] = useState<KeyRoute>("wallet");
@@ -200,7 +239,8 @@ export default function Home() {
   }, [sdkMode, sdkReady, sdk.registered]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg text-fg">
+    <div className="flex min-h-screen flex-col bg-bg text-fg relative overflow-x-clip">
+
       {/* Top Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -222,12 +262,107 @@ export default function Home() {
           setRoute(m);
           setActiveTab("dashboard");
         }}
-        connectLabel={sdkMode ? "Get started" : "Connect Wallet"}
+        connectLabel={sdkMode ? "Get started" : "Connect wallet"}
         disconnectLabel={sdkMode ? "Forget SDK key" : "Disconnect Wallet"}
       />
 
+      {/* Ambient Decorative Objects (Acctual-style desktop frame) */}
+      {/* Top-Right: Peeking MacBook (~10% visible) */}
+      <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block">
+        <motion.div
+          initial={{ opacity: 0, x: 60, y: -20, rotate: -15 }}
+          animate={{ opacity: 1, x: 0, y: 0, rotate: -15 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="w-[660px] lg:w-[720px] xl:w-[780px] 2xl:w-[820px] drop-shadow-[5px_2px_6px_rgba(0,0,0,0.06)] drop-shadow-[21px_9px_10px_rgba(0,0,0,0.08)] drop-shadow-[48px_20px_18px_rgba(0,0,0,0.06)]"
+        >
+          <Image
+            src="/laptop.png"
+            alt="MacBook Pro"
+            width={1024}
+            height={912}
+            priority
+            className="h-auto w-full object-contain"
+          />
+        </motion.div>
+      </div>
+
+      {/* Top-Left: Floating Silver Paperclip (Acctual-style) */}
+      <div className="pointer-events-none select-none absolute top-32 lg:top-36 xl:top-40 left-6 lg:left-12 xl:left-20 2xl:left-32 z-0 hidden lg:block">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: [0, -12, 0],
+            rotate: [0, 4, 0],
+          }}
+          transition={{
+            opacity: { duration: 0.8 },
+            scale: { duration: 0.8 },
+            y: { repeat: Infinity, duration: 5.5, ease: "easeInOut" },
+            rotate: { repeat: Infinity, duration: 5.5, ease: "easeInOut" },
+          }}
+          className="w-[75px] lg:w-[88px] xl:w-[100px] drop-shadow-[0_16px_24px_rgba(0,0,0,0.10)]"
+        >
+          <Image
+            src="/paperclip.png"
+            alt="Paperclip"
+            width={140}
+            height={180}
+            priority
+            className="h-auto w-full object-contain"
+          />
+        </motion.div>
+      </div>
+
+      {/* Bottom-Left: Peeking Magic Keyboard (Acctual-style corner peek) */}
+      <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block">
+        <motion.div
+          initial={{ opacity: 0, x: -40, y: 30 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+          className="w-[320px] lg:w-[380px] xl:w-[440px] 2xl:w-[480px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.10)]"
+        >
+          <Image
+            src="/keyboard.png"
+            alt="Keyboard"
+            width={1002}
+            height={596}
+            priority
+            className="h-auto w-full object-contain"
+          />
+        </motion.div>
+      </div>
+
+      {/* Bottom-Right: Orange Binder Clip with Cast Shadow */}
+      <div className="pointer-events-none select-none absolute bottom-16 right-8 lg:right-16 xl:right-28 2xl:right-40 z-0 hidden lg:block">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: [0, 8, 0],
+          }}
+          transition={{
+            opacity: { duration: 0.8 },
+            scale: { duration: 0.8 },
+            y: { repeat: Infinity, duration: 5, ease: "easeInOut" },
+          }}
+          className="w-[80px] lg:w-[95px] xl:w-[110px] 2xl:w-[125px] drop-shadow-[0_14px_24px_rgba(0,0,0,0.12)]"
+        >
+          <Image
+            src="/clip.png"
+            alt="Binder clip"
+            width={416}
+            height={437}
+            className="h-auto w-full object-contain"
+          />
+        </motion.div>
+      </div>
+
       {/* Main Container */}
-      <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="relative z-10 mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
         {/* Route switch for small screens (navbar switch is sm+) */}
         <div className="mb-6 flex justify-center sm:hidden">
           <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
@@ -246,7 +381,7 @@ export default function Home() {
                 }}
                 className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition-all ${
                   route === m.id
-                    ? "bg-black font-semibold text-white ring-1 ring-black shadow-sm"
+                    ? "strk-pill-active font-semibold text-white shadow-sm"
                     : "text-muted hover:text-fg"
                 }`}
               >
@@ -288,205 +423,214 @@ export default function Home() {
           </div>
         )}
 
-        {/* Unconnected Welcome Hero (if not connected and no demo) */}
-        {/* Unconnected: wallet hero, or SDK setup when on the SDK route */}
-        {!isConnected ? (
-          sdkMode ? (
-            <div className="mx-auto max-w-xl py-4">
-              <SdkSetupCard />
-            </div>
-          ) : (
-          <div className="mx-auto max-w-2xl py-12 text-center">
-            <div className="inline-flex size-16 items-center justify-center rounded-3xl bg-surface-2 text-fg ring-1 ring-border shadow-sm">
-              <KairoMark size={34} />
-            </div>
-            <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl text-fg">
-              The Private Wallet for Starknet
-            </h1>
-            <p className="mt-3 text-[15px] leading-relaxed text-muted">
-              Receive, hold, and send privately on Starknet with zero cryptography jargon. Powered by the live STRK20 Privacy Pool.
-            </p>
+        {/* Unified Umbra-Style Single Page Layout */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mx-auto max-w-2xl text-center pt-2 pb-6 sm:pt-6 sm:pb-8"
+        >
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="text-3xl font-bold tracking-tight sm:text-5xl text-fg"
+          >
+            Incognito mode for your money.
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-4 text-[14px] sm:text-[15px] leading-relaxed text-muted max-w-xl mx-auto"
+          >
+            Kairo is the privacy layer for Starknet. Shield assets with zero fees. Your finances, visible to no one but you.
+          </motion.p>
+        </motion.div>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => setWalletModalOpen(true)}
-                className="flex h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-black px-8 text-[15px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
-              >
-                Connect Starknet Wallet
-              </button>
-              <button
-                type="button"
-                onClick={() => setDemo("on")}
-                className="flex h-13 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-surface px-6 text-[14px] font-semibold text-fg ring-1 ring-border transition-colors hover:bg-surface-2"
-              >
-                <Sparkles size={15} className="text-fg" /> Launch Demo Mode
-              </button>
-            </div>
+        {/* Center: Navigation Tabs Pill */}
+        <div className="mb-8 flex justify-center">
+          <NavigationTabs
+            activeTab={activeTab}
+            onSelect={setActiveTab}
+          />
+        </div>
 
-            {/* Feature Highlights */}
-            <div className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-3 text-left">
-              {[
-                {
-                  title: "Shielded Pool",
-                  desc: "Deposits enter an unlinkable privacy pool backed by Cairo ZK-STARKs.",
-                },
-                {
-                  title: "Stealth Receiving",
-                  desc: "Publish your privacy address once. Payments discover automatically.",
-                },
-                {
-                  title: "Gasless Relayers",
-                  desc: "AVNU Paymaster submits transactions so your address never leaks in calldata.",
-                },
-              ].map((f) => (
-                <div key={f.title} className="rounded-3xl bg-surface p-5 ring-1 ring-border shadow-sm">
-                  <h3 className="text-[14px] font-semibold text-fg">{f.title}</h3>
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          )
-        ) : sdkMode && !sdk.registered && activeTab !== "dashboard" ? (
-          /* SDK route gates every action tab behind viewing-key registration */
-          <div className="mx-auto max-w-xl">
-            <SdkSetupCard />
-          </div>
-        ) : (
-          /* Connected Application Tabs Layout */
-          <div>
-            {activeTab === "dashboard" && (
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                <div className="lg:col-span-2">
-                  <DashboardTab
-                    shielded={shielded}
-                    publicBalance={publicStrk}
-                    pending={pending}
-                    token={token}
-                    address={displayAddress}
-                    activity={activity}
-                    onNavigate={(tab) => setActiveTab(tab)}
-                    showSetup={showSetup}
-                  />
-                </div>
-                <div className="lg:col-span-1">
-                  <PoolStats
-                    shieldedBalance={shielded}
-                    publicBalance={publicStrk}
-                    isRegistered={
-                      sdkMode
-                        ? sdk.registered
-                        : strk20 === "supported" || demo === "on"
+        {/* Center: Action Card Widget */}
+        <div className="w-full">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: [0.25, 1, 0.5, 1] }}
+            >
+              {activeTab === "shield" && (
+            showSetup && !demo ? (
+              <div className="mx-auto max-w-xl">
+                {sdkMode ? (
+                  <SdkSetupCard />
+                ) : (
+                  <SetupCard
+                    walletName={walletName}
+                    onCheck={
+                      real
+                        ? refresh
+                        : async () => {
+                            await new Promise((r) => setTimeout(r, 800));
+                            return true;
+                          }
                     }
                   />
-                </div>
+                )}
               </div>
-            )}
+            ) : (
+              <ShieldTab
+                publicBalance={publicStrk}
+                token={token}
+                feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+                onShield={sdkMode ? sdk.shield : real ? shield : undefined}
+                connected={isConnected}
+                onConnect={() => setWalletModalOpen(true)}
+              />
+            )
+          )}
 
-            {activeTab === "shield" &&
-              (showSetup ? (
-                <div className="mx-auto max-w-xl">
-                  {sdkMode ? (
-                    <SdkSetupCard />
-                  ) : (
-                    <SetupCard
-                      walletName={walletName}
-                      onCheck={
-                        real
-                          ? refresh
-                          : async () => {
-                              await new Promise((r) => setTimeout(r, 800));
-                              return true;
-                            }
-                      }
-                    />
-                  )}
-                </div>
-              ) : (
-                <ShieldTab
+          {activeTab === "transfer" && (
+            <TransferTab
+              spendable={shielded}
+              token={token}
+              feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+              onSubmit={sdkMode ? sdk.sendPrivate : real ? sendPrivate : undefined}
+              checkRecipient={
+                sdkMode
+                  ? sdk.checkRecipient
+                  : real
+                    ? (addr) =>
+                        canReceivePrivately(
+                          addr,
+                          chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet",
+                        )
+                    : undefined
+              }
+              connected={isConnected}
+              onConnect={() => setWalletModalOpen(true)}
+            />
+          )}
+
+          {activeTab === "swap" && (
+            <SwapTab
+              spendable={shielded}
+              token={token}
+              feeStrk={sdkMode ? sdk.feeStrk : 0}
+              connected={isConnected}
+              onConnect={() => setWalletModalOpen(true)}
+            />
+          )}
+
+          {activeTab === "unshield" && (
+            <UnshieldTab
+              shieldedBalance={shielded}
+              token={token}
+              feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
+              onUnshield={sdkMode ? sdk.unshield : real ? unshield : undefined}
+              connected={isConnected}
+              onConnect={() => setWalletModalOpen(true)}
+            />
+          )}
+
+          {activeTab === "receive" && (
+            <ReceiveTab
+              address={displayAddress}
+              receivable={
+                sdkMode ? sdk.registered : strk20 === "supported" || demo === "on"
+              }
+              connected={isConnected}
+              onConnect={() => setWalletModalOpen(true)}
+            />
+          )}
+
+          {activeTab === "activity" && (
+            <ActivityTab activity={activity} token={token} />
+          )}
+
+          {activeTab === "dashboard" && (
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <DashboardTab
+                  shielded={shielded}
                   publicBalance={publicStrk}
+                  pending={pending}
                   token={token}
-                  feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
-                  onShield={sdkMode ? sdk.shield : real ? shield : undefined}
+                  address={displayAddress}
+                  activity={activity}
+                  onNavigate={(tab) => setActiveTab(tab)}
+                  showSetup={showSetup}
                 />
-              ))}
+              </div>
+              <div className="lg:col-span-1">
+                <PoolStats
+                  shieldedBalance={shielded}
+                  publicBalance={publicStrk}
+                  isRegistered={
+                    sdkMode
+                      ? sdk.registered
+                      : strk20 === "supported" || demo === "on"
+                  }
+                />
+              </div>
+            </div>
+          )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-            {activeTab === "transfer" && (
-              <TransferTab
-                spendable={shielded}
-                token={token}
-                feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
-                onSubmit={sdkMode ? sdk.sendPrivate : real ? sendPrivate : undefined}
-                checkRecipient={
-                  sdkMode
-                    ? sdk.checkRecipient
-                    : real
-                      ? (addr) =>
-                          canReceivePrivately(
-                            addr,
-                            chainId === SEPOLIA_CHAIN_ID ? "sepolia" : "mainnet",
-                          )
-                      : undefined
-                }
-              />
-            )}
-
-            {activeTab === "unshield" && (
-              <UnshieldTab
-                shieldedBalance={shielded}
-                token={token}
-                feeStrk={sdkMode ? sdk.feeStrk : POOL_FEE_STRK}
-                onUnshield={sdkMode ? sdk.unshield : real ? unshield : undefined}
-              />
-            )}
-
-            {activeTab === "receive" && (
-              <ReceiveTab
-                address={displayAddress}
-                receivable={
-                  sdkMode ? sdk.registered : strk20 === "supported" || demo === "on"
-                }
-              />
-            )}
-
-            {activeTab === "activity" && (
-              <ActivityTab activity={activity} token={token} />
-            )}
+        {/* Acctual-Style Trust Bullets */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.24 }}
+          className="mt-10 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-[13px] font-medium text-fg"
+        >
+          <div className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-fg" />
+            <span>Zero calldata leakage</span>
+            <span className="inline-flex items-center text-[11px] font-bold text-muted">
+              ▼ 100%
+            </span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-fg" />
+            <span>Sponsored AVNU gas 0%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-fg" />
+            <span>STRK20 privacy pool</span>
+          </div>
+        </motion.div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      {isConnected && (
-        <div className="sticky bottom-0 z-40 w-full border-t border-border bg-bg/95 backdrop-blur-xl md:hidden">
-          <div className="flex h-16 items-center justify-around px-2">
-            {[
-              { id: "dashboard", label: "Overview", icon: Shield },
-              { id: "shield", label: "Shield", icon: ShieldPlus },
-              { id: "transfer", label: "Send", icon: ArrowUpRight },
-              { id: "unshield", label: "Unshield", icon: ArrowLeftRight },
-              { id: "receive", label: "Receive", icon: ArrowDownLeft },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as NavTab)}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-1.5 transition-colors ${
-                    active ? "text-fg font-semibold" : "text-muted hover:text-fg"
-                  }`}
-                >
-                  <Icon size={18} className={active ? "text-fg" : "text-muted"} />
-                  <span className="text-[10px]">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="sticky bottom-0 z-40 w-full border-t border-border bg-bg/95 backdrop-blur-xl md:hidden">
+        <div className="flex h-14 items-center justify-around px-2">
+          {NAV_TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as NavTab)}
+                className={`flex items-center justify-center rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                  active ? "strk-pill-active font-semibold text-white shadow-sm" : "text-[#52525b] hover:text-fg"
+                }`}
+              >
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Connect Wallet Modal */}
       <WalletModal
