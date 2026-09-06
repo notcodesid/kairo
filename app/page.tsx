@@ -269,10 +269,8 @@ export default function Home() {
       {/* Ambient Decorative Objects (Acctual-style desktop frame) */}
       {/* Top-Right: Peeking MacBook (~10% visible) */}
       <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block">
-        <motion.div
-          initial={{ opacity: 0, x: 60, y: -20, rotate: -15 }}
-          animate={{ opacity: 1, x: 0, y: 0, rotate: -15 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        <div
+          style={{ transform: "rotate(-15deg)" }}
           className="w-[660px] lg:w-[720px] xl:w-[780px] 2xl:w-[820px] drop-shadow-[5px_2px_6px_rgba(0,0,0,0.06)] drop-shadow-[21px_9px_10px_rgba(0,0,0,0.08)] drop-shadow-[48px_20px_18px_rgba(0,0,0,0.06)]"
         >
           <Image
@@ -283,15 +281,13 @@ export default function Home() {
             priority
             className="h-auto w-full object-contain"
           />
-        </motion.div>
+        </div>
       </div>
 
       {/* Top-Left Ambient Elements (Peeking naturally, no flip, showing more items) */}
       <div className="pointer-events-none select-none absolute top-28 lg:top-32 xl:top-36 2xl:top-40 -left-28 lg:-left-36 xl:-left-44 2xl:-left-40 z-0 hidden lg:block">
-        <motion.div
-          initial={{ opacity: 0, x: -30, y: -15, rotate: -40 }}
-          animate={{ opacity: 1, x: 0, y: 0, rotate: -40 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        <div
+          style={{ transform: "rotate(-40deg)" }}
           className="w-[480px] lg:w-[540px] xl:w-[600px] 2xl:w-[650px] drop-shadow-[0_20px_36px_rgba(0,0,0,0.08)]"
         >
           <Image
@@ -302,15 +298,12 @@ export default function Home() {
             priority
             className="h-auto w-full object-contain"
           />
-        </motion.div>
+        </div>
       </div>
 
       {/* Bottom-Left: Peeking Magic Keyboard (Acctual-style corner peek) */}
       <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block">
-        <motion.div
-          initial={{ opacity: 0, x: -40, y: 30 }}
-          animate={{ opacity: 1, x: 0, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+        <div
           className="w-[320px] lg:w-[380px] xl:w-[440px] 2xl:w-[480px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.10)]"
         >
           <Image
@@ -321,23 +314,14 @@ export default function Home() {
             priority
             className="h-auto w-full object-contain"
           />
-        </motion.div>
+        </div>
       </div>
 
       {/* Bottom-Right: Orange Binder Clip with Cast Shadow */}
       <div className="pointer-events-none select-none absolute bottom-16 right-8 lg:right-16 xl:right-28 2xl:right-40 z-0 hidden lg:block">
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: [0, 8, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.8 },
-            scale: { duration: 0.8 },
-            y: { repeat: Infinity, duration: 5, ease: "easeInOut" },
-          }}
+          animate={{ y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
           className="w-[80px] lg:w-[95px] xl:w-[110px] 2xl:w-[125px] drop-shadow-[0_14px_24px_rgba(0,0,0,0.12)]"
         >
           <Image
@@ -413,30 +397,15 @@ export default function Home() {
           </div>
         )}
 
-        {/* Unified Umbra-Style Single Page Layout */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto max-w-2xl text-center pt-2 pb-6 sm:pt-6 sm:pb-8"
-        >
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-            className="text-3xl font-bold tracking-tight sm:text-5xl text-fg"
-          >
-            Incognito mode for your money.
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-4 text-[14px] sm:text-[15px] leading-relaxed text-muted max-w-xl mx-auto"
-          >
-            Kairo is the privacy layer for Starknet. Shield assets with zero fees. Your finances, visible to no one but you.
-          </motion.p>
-        </motion.div>
+        {/* Hero Heading and Subtitle */}
+        <div className="mx-auto max-w-2xl text-center pt-2 pb-6 sm:pt-6 sm:pb-8">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-5xl text-fg">
+            The blockchain is public.<br className="hidden sm:inline" /> Your money shouldn&apos;t be.
+          </h1>
+          <p className="mt-4 text-[14px] sm:text-[15px] leading-relaxed text-muted max-w-xl mx-auto">
+            Shield, swap, and transfer assets on Starknet with zero trace.
+          </p>
+        </div>
 
         {/* Center: Navigation Tabs Pill */}
         <div className="mb-8 flex justify-center">
@@ -448,7 +417,7 @@ export default function Home() {
 
         {/* Center: Action Card Widget */}
         <div className="w-full">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 8 }}
