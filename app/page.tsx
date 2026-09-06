@@ -62,6 +62,7 @@ function getServerNow() {
 }
 
 const NAV_TABS = [
+  { id: "dashboard", label: "Overview" },
   { id: "shield", label: "Shield" },
   { id: "transfer", label: "Private Send" },
   { id: "swap", label: "Private Swap" },
@@ -268,7 +269,7 @@ export default function Home() {
 
       {/* Ambient Decorative Objects (Acctual-style desktop frame) */}
       {/* Top-Right: Peeking MacBook (~10% visible) */}
-      <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block">
+      <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block dark:opacity-20 dark:grayscale dark:mix-blend-screen transition-opacity">
         <div
           style={{ transform: "rotate(-15deg)" }}
           className="w-[660px] lg:w-[720px] xl:w-[780px] 2xl:w-[820px] drop-shadow-[5px_2px_6px_rgba(0,0,0,0.06)] drop-shadow-[21px_9px_10px_rgba(0,0,0,0.08)] drop-shadow-[48px_20px_18px_rgba(0,0,0,0.06)]"
@@ -285,7 +286,7 @@ export default function Home() {
       </div>
 
       {/* Top-Left Ambient Elements (Peeking naturally, no flip, showing more items) */}
-      <div className="pointer-events-none select-none absolute top-28 lg:top-32 xl:top-36 2xl:top-40 -left-28 lg:-left-36 xl:-left-44 2xl:-left-40 z-0 hidden lg:block">
+      <div className="pointer-events-none select-none absolute top-28 lg:top-32 xl:top-36 2xl:top-40 -left-28 lg:-left-36 xl:-left-44 2xl:-left-40 z-0 hidden lg:block dark:opacity-25 dark:brightness-90 transition-opacity">
         <div
           style={{ transform: "rotate(-40deg)" }}
           className="w-[480px] lg:w-[540px] xl:w-[600px] 2xl:w-[650px] drop-shadow-[0_20px_36px_rgba(0,0,0,0.08)]"
@@ -302,7 +303,7 @@ export default function Home() {
       </div>
 
       {/* Bottom-Left: Peeking Magic Keyboard (Acctual-style corner peek) */}
-      <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block">
+      <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block dark:opacity-20 dark:grayscale dark:mix-blend-screen transition-opacity">
         <div
           className="w-[320px] lg:w-[380px] xl:w-[440px] 2xl:w-[480px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.10)]"
         >
@@ -318,7 +319,7 @@ export default function Home() {
       </div>
 
       {/* Bottom-Right: Orange Binder Clip with Cast Shadow */}
-      <div className="pointer-events-none select-none absolute bottom-16 right-8 lg:right-16 xl:right-28 2xl:right-40 z-0 hidden lg:block">
+      <div className="pointer-events-none select-none absolute bottom-16 right-8 lg:right-16 xl:right-28 2xl:right-40 z-0 hidden lg:block dark:opacity-40 transition-opacity">
         <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
@@ -400,10 +401,18 @@ export default function Home() {
         {/* Hero Heading and Subtitle */}
         <div className="mx-auto max-w-2xl text-center pt-2 pb-6 sm:pt-6 sm:pb-8">
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl text-fg">
-            The blockchain is public.<br className="hidden sm:inline" /> Your money shouldn&apos;t be.
+            {activeTab === "dashboard" ? (
+              "Confidential Portfolio."
+            ) : (
+              <>
+                The blockchain is public.<br className="hidden sm:inline" /> Your money shouldn&apos;t be.
+              </>
+            )}
           </h1>
           <p className="mt-4 text-[14px] sm:text-[15px] leading-relaxed text-muted max-w-xl mx-auto">
-            Shield, swap, and transfer assets on Starknet with zero trace.
+            {activeTab === "dashboard"
+              ? "Zero-knowledge shielded assets and real-time Starknet privacy pool status."
+              : "Shield, swap, and transfer assets on Starknet with zero trace."}
           </p>
         </div>
 

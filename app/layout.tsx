@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Kairo — private wallet for Starknet",
   description:
-    "Receive, hold, and send privately on Starknet. The cryptography stays hidden.",
+    "The blockchain is public. Your money shouldn't be. Shield, swap, and transfer assets on Starknet with zero trace.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
