@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* Kairo — Pure Monochrome Light Design Tokens (White & Black) */
-@theme {
+:root {
   --color-bg: #ffffff;
   --color-bg-subtle: #f9f9fa;
   --color-surface: #ffffff;
@@ -13,21 +12,135 @@
   --color-fg: #09090b;
   --color-muted: #52525b;
   --color-faint: #71717a;
+}
+
+.dark {
+  --color-bg: #09090b;
+  --color-bg-subtle: #121215;
+  --color-surface: #141417;
+  --color-surface-2: #1e1e23;
+  --color-surface-glass: rgba(20, 20, 23, 0.85);
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
+  --color-border-accent: #f4f4f5;
+  --color-fg: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-faint: #71717a;
+}
+
+/* Kairo Design Tokens with Dynamic Dark/Light Theme */
+@theme {
+  --color-bg: var(--color-bg);
+  --color-bg-subtle: var(--color-bg-subtle);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-glass: var(--color-surface-glass);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-accent: var(--color-border-accent);
+  --color-fg: var(--color-fg);
+  --color-muted: var(--color-muted);
+  --color-faint: var(--color-faint);
   --color-accent: #09090b;
   --color-accent-strong: #27272a;
   --color-accent-glow: rgba(0, 0, 0, 0.04);
-  --color-success: #09090b;
-  --color-success-bg: #f4f4f5;
+  --color-success: #2ca01c;
+  --color-success-bg: #ecfdf5;
   --color-warning: #71717a;
   --color-danger: #09090b;
+
 
   --radius-card: 22px;
   --radius-card-sm: 16px;
 }
 
+/* Dark mode surface overrides for cards & modals */
+.dark .bg-white {
+  background-color: #141417 !important;
+}
+.dark .border-\[\#e4e7ec\] {
+  border-color: #27272a !important;
+}
+.dark .bg-\[\#fcfdfd\],
+.dark .bg-\[\#fbfcfd\] {
+  background-color: #1a1a20 !important;
+}
+.dark .bg-\[\#eef2f6\] {
+  background-color: #24242d !important;
+}
+.dark .bg-surface-2 {
+  background-color: #1e1e23 !important;
+}
+.dark .hover\:bg-zinc-200:hover {
+  background-color: #272730 !important;
+}
+.dark .hover\:bg-\[\#e2e8f0\]:hover {
+  background-color: #2d2d38 !important;
+}
+.dark .text-\[\#344054\] {
+  color: #d0d5dd !important;
+}
+.dark .text-\[\#667085\] {
+  color: #98a2b3 !important;
+}
+
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("/fonts/open-runde-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("/fonts/open-runde-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("/fonts/open-runde-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Open Runde";
+  src: url("/fonts/open-runde-semibold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Open Runde", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: var(--font-geist-mono);
+}
+
+@font-face {
+  font-family: "Public Brand";
+  src: url("/fonts/public-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Public Brand";
+  src: url("/fonts/public-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-brand {
+  font-family: "Public Brand", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: -0.04em;
 }
 
 @layer base {
@@ -47,7 +160,7 @@
   }
 
   body {
-    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: "Open Runde", var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -99,5 +212,48 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ── STRK20 Official Hackathon Signature Gradient (Extra Light & Luminous) ── */
+.btn-strk20 {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.08) 46%, rgba(255, 255, 255, 0) 47%),
+    linear-gradient(180deg, #ff844b 0%, #ff6122 50%, #f04905 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 132, 75, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 14px rgba(255, 97, 34, 0.30);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-strk20:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 47%),
+    linear-gradient(180deg, #ff9462 0%, #ff7036 50%, #f55414 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52), 0 0 26px rgba(255, 112, 54, 0.48);
+}
+
+.strk-pill-active {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.06) 48%, rgba(255, 255, 255, 0) 49%),
+    linear-gradient(180deg, #ff844b 0%, #ff6122 55%, #f04905 100%);
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.40), 0 1px 6px rgba(255, 97, 34, 0.28);
+}
+
+.strk-promo {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  text-align: center;
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 46%),
+    linear-gradient(180deg, #ff6b2d 0%, #f04905 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), 0 1px 2px rgba(0, 0, 0, 0.10);
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
