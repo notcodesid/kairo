@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, ExternalLink, KeyRound, Shield } from "@/components/icons";
+import { Check, Copy, ExternalLink } from "@/components/icons";
 import { addressUrl } from "@/lib/explorer";
 import { truncateAddress } from "@/lib/format";
 import { mainnetProverUrl, type SdkNetwork } from "@/lib/sdk";
@@ -210,16 +210,11 @@ export function SdkSetupCard() {
   return (
     <section className="overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-            <KeyRound size={20} />
-          </span>
-          <div>
-            <h2 className="text-[16px] font-bold text-fg">SDK wallet — app-held key</h2>
-            <p className="text-[12px] text-muted">
-              Kairo generates the viewing key and registers it itself
-            </p>
-          </div>
+        <div>
+          <h2 className="text-[16px] font-bold text-fg">SDK wallet — app-held key</h2>
+          <p className="text-[12px] text-muted">
+            Kairo generates the viewing key and registers it itself
+          </p>
         </div>
         {/* Network toggle */}
         <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
@@ -462,13 +457,9 @@ export function SdkSetupCard() {
           </ol>
 
           <PrimaryButton busy={busy === "register"} onClick={() => void register()}>
-            {busy === "register" ? (
-              "Registering viewing key…"
-            ) : (
-              <>
-                <Shield size={16} /> Generate + register viewing key
-              </>
-            )}
+            {busy === "register"
+              ? "Registering viewing key…"
+              : "Generate + register viewing key"}
           </PrimaryButton>
           {error && (
             <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
