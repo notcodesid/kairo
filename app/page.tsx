@@ -286,29 +286,19 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Top-Left: Floating Silver Paperclip (Acctual-style) */}
-      <div className="pointer-events-none select-none absolute top-32 lg:top-36 xl:top-40 left-6 lg:left-12 xl:left-20 2xl:left-32 z-0 hidden lg:block">
+      {/* Top-Left Ambient Elements (Peeking naturally, no flip, showing more items) */}
+      <div className="pointer-events-none select-none absolute top-28 lg:top-32 xl:top-36 2xl:top-40 -left-28 lg:-left-36 xl:-left-44 2xl:-left-40 z-0 hidden lg:block">
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: [0, -12, 0],
-            rotate: [0, 4, 0],
-          }}
-          transition={{
-            opacity: { duration: 0.8 },
-            scale: { duration: 0.8 },
-            y: { repeat: Infinity, duration: 5.5, ease: "easeInOut" },
-            rotate: { repeat: Infinity, duration: 5.5, ease: "easeInOut" },
-          }}
-          className="w-[75px] lg:w-[88px] xl:w-[100px] drop-shadow-[0_16px_24px_rgba(0,0,0,0.10)]"
+          initial={{ opacity: 0, x: -30, y: -15, rotate: -40 }}
+          animate={{ opacity: 1, x: 0, y: 0, rotate: -40 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          className="w-[480px] lg:w-[540px] xl:w-[600px] 2xl:w-[650px] drop-shadow-[0_20px_36px_rgba(0,0,0,0.08)]"
         >
           <Image
             src="/paperclip.png"
-            alt="Paperclip"
-            width={140}
-            height={180}
+            alt="Ambient elements"
+            width={1024}
+            height={640}
             priority
             className="h-auto w-full object-contain"
           />
