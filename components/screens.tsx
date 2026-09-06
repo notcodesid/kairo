@@ -1,23 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import QRCode from "react-qr-code";
 import { validateAndParseAddress } from "starknet";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowLeftRight,
   Check,
   Copy,
   ExternalLink,
-  Info,
-  Lock,
-  QrCode,
-  ShieldCheck,
-  ShieldPlus,
   Spinner,
-  Unlock,
-  Wallet,
 } from "@/components/icons";
 import { txUrl } from "@/lib/explorer";
 import { formatAmount, splitAmount, truncateAddress } from "@/lib/format";
@@ -44,18 +35,21 @@ export function PrimaryButton({
   const bg =
     variant === "surface"
       ? "bg-surface-2 hover:bg-zinc-200 text-fg ring-1 ring-border"
-      : "bg-black hover:bg-zinc-800 text-white shadow-sm";
+      : "btn-strk20 text-white";
 
   return (
-    <button
+    <motion.button
       type={type}
       onClick={onClick}
       disabled={disabled || busy}
-      className={`flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl px-5 text-[15px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:opacity-50 disabled:cursor-not-allowed ${bg}`}
+      whileHover={{ scale: disabled || busy ? 1 : 1.01 }}
+      whileTap={{ scale: disabled || busy ? 1 : 0.985 }}
+      transition={{ type: "spring", stiffness: 450, damping: 25 }}
+      className={`flex h-14 w-full items-center justify-center gap-2.5 rounded-full px-6 text-[16px] font-semibold transition-all duration-150 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${bg}`}
     >
       {busy && <Spinner size={18} />}
       {children}
-    </button>
+    </motion.button>
   );
 }
 
@@ -84,7 +78,12 @@ export function DoneModal({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6 py-10 text-center animate-in fade-in zoom-in-95 duration-200">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 400, damping: 28 }}
+      className="flex flex-col items-center justify-center gap-6 py-10 text-center"
+    >
       <span className="flex size-18 items-center justify-center rounded-3xl bg-black text-white ring-1 ring-black shadow-md">
         <Check size={32} />
       </span>
@@ -117,7 +116,7 @@ export function DoneModal({
       <div className="w-full max-w-xs pt-2">
         <PrimaryButton onClick={onDone}>Return to App</PrimaryButton>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -164,10 +163,10 @@ export function DashboardTab({
         <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
           <div className="relative space-y-3">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-[13px] font-semibold text-fg">
-                <ShieldCheck size={16} /> Shielded Balance
+              <span className="text-[13px] font-semibold text-fg">
+                Shielded Balance
               </span>
-              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-fg ring-1 ring-border">
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-semibold text-fg ring-1 ring-border">
                 Private & Unlinkable
               </span>
             </div>
@@ -181,8 +180,8 @@ export function DashboardTab({
             </div>
 
             {pending > 0 ? (
-              <p className="flex items-center gap-2 text-[12px] text-fg font-medium">
-                <span className="size-2 rounded-full bg-black animate-pulse" />
+              <p className="flex items-center gap-2 text-[12px] text-muted font-medium">
+                <span className="size-2 rounded-full bg-fg animate-pulse" />
                 <span>+{formatAmount(pending)} {token} confirming note maturity (~5m)</span>
               </p>
             ) : (
@@ -195,16 +194,16 @@ export function DashboardTab({
               <button
                 type="button"
                 onClick={() => onNavigate("transfer")}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-black px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
+                className="flex-1 flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
               >
-                <ArrowUpRight size={15} /> Send Privately
+                Send Privately
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate("receive")}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
+                className="flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
-                <QrCode size={15} /> Receive
+                Receive
               </button>
             </div>
           </div>
@@ -214,8 +213,8 @@ export function DashboardTab({
         <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-[13px] font-semibold text-muted">
-                <Wallet size={16} /> Public Balance
+              <span className="text-[13px] font-semibold text-muted">
+                Public Balance
               </span>
               <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted ring-1 ring-border">
                 On-Chain Starknet
@@ -238,16 +237,16 @@ export function DashboardTab({
               <button
                 type="button"
                 onClick={() => onNavigate("shield")}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
+                className="flex-1 flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
               >
-                <ShieldPlus size={15} className="text-fg" /> Shield Funds
+                Shield Funds
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate("unshield")}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-surface-2 px-3.5 py-2.5 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-zinc-200 hover:text-fg"
+                className="flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-zinc-200 hover:text-fg"
               >
-                <ArrowLeftRight size={15} /> Unshield
+                Unshield
               </button>
             </div>
           </div>
@@ -257,27 +256,21 @@ export function DashboardTab({
       {/* Quick Action Banner */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Shield (Deposit)", desc: "Public → Private", icon: ShieldPlus, tab: "shield" as const },
-          { label: "Private Send", desc: "STARK proof transfer", icon: ArrowUpRight, tab: "transfer" as const },
-          { label: "Unshield", desc: "Private → Public", icon: ArrowLeftRight, tab: "unshield" as const },
-          { label: "Receive Stealth", desc: "QR & View Keys", icon: ArrowDownLeft, tab: "receive" as const },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => onNavigate(item.tab)}
-              className="group flex flex-col items-start gap-1 rounded-2xl bg-surface p-4 text-left ring-1 ring-border transition-all hover:bg-surface-2 hover:ring-border-strong"
-            >
-              <span className="flex size-8 items-center justify-center rounded-lg bg-surface-2 text-fg ring-1 ring-border group-hover:bg-black group-hover:text-white transition-colors">
-                <Icon size={16} />
-              </span>
-              <span className="mt-1 text-[13px] font-semibold text-fg">{item.label}</span>
-              <span className="text-[11px] text-muted">{item.desc}</span>
-            </button>
-          );
-        })}
+          { label: "Shield (Deposit)", desc: "Public → Private", tab: "shield" as const },
+          { label: "Private Send", desc: "STARK proof transfer", tab: "transfer" as const },
+          { label: "Unshield", desc: "Private → Public", tab: "unshield" as const },
+          { label: "Receive Stealth", desc: "QR & View Keys", tab: "receive" as const },
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => onNavigate(item.tab)}
+            className="group flex flex-col items-start gap-1 rounded-2xl bg-surface p-4 text-left ring-1 ring-border transition-all hover:bg-surface-2 hover:ring-border-strong"
+          >
+            <span className="text-[13px] font-semibold text-fg group-hover:underline">{item.label}</span>
+            <span className="text-[11px] text-muted">{item.desc}</span>
+          </button>
+        ))}
       </div>
 
       {/* Recent Activity Mini-Feed */}
@@ -297,20 +290,11 @@ export function DashboardTab({
           <ul className="mt-3 divide-y divide-border">
             {activity.slice(0, 4).map((item) => (
               <li key={item.id} className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 text-fg ring-1 ring-border">
-                    {item.kind === "shield" ? (
-                      <ShieldPlus size={16} />
-                    ) : item.kind === "unshield" ? (
-                      <ArrowLeftRight size={16} />
-                    ) : (
-                      <ArrowUpRight size={16} />
-                    )}
-                  </span>
-                  <div>
-                    <p className="text-[13px] font-medium text-fg capitalize">{item.kind}</p>
-                    <p className="text-[11px] text-muted">{item.at}</p>
-                  </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-fg capitalize">
+                    {item.kind === "sent" ? "Private Transfer" : item.kind}
+                  </p>
+                  <p className="text-[11px] text-muted mt-0.5">{item.at}</p>
                 </div>
 
                 <div className="text-right">
@@ -337,41 +321,128 @@ export function DashboardTab({
 
 /* -------------------------------------------------------------- Shield Tab */
 
+const AVAILABLE_TOKENS = [
+  { symbol: "STRK", name: "Starknet Token", rate: 0.42 },
+  { symbol: "USDC", name: "USD Coin", rate: 1.0 },
+  { symbol: "ETH", name: "Ethereum", rate: 2500 },
+];
+
+export function TokenSelectModal({
+  open,
+  onClose,
+  selected,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selected: string;
+  onSelect: (token: string) => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", stiffness: 450, damping: 28 }}
+            className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-border"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-border">
+              <h3 className="text-[16px] font-bold text-fg">Select Token</h3>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex size-7 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-fg text-sm font-semibold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-4 space-y-2">
+              {AVAILABLE_TOKENS.map((t) => {
+                const isCurrent = t.symbol === selected;
+                return (
+                  <button
+                    key={t.symbol}
+                    type="button"
+                    onClick={() => onSelect(t.symbol)}
+                    className={`flex w-full items-center justify-between rounded-2xl p-3.5 transition-all ${
+                      isCurrent
+                        ? "bg-surface-2 text-fg ring-1 ring-border-strong"
+                        : "hover:bg-surface-2 text-fg"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-9 items-center justify-center rounded-full bg-surface-2 font-bold text-[13px] text-fg">
+                        {t.symbol[0]}
+                      </span>
+                      <div className="text-left">
+                        <p className="text-[14px] font-semibold">{t.symbol}</p>
+                        <p className="text-[12px] text-muted">{t.name}</p>
+                      </div>
+                    </div>
+                    {isCurrent && <span className="text-fg font-bold text-sm">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function ShieldTab({
   publicBalance,
-  token,
-  feeStrk = 6,
+  token = "STRK",
+  feeStrk = 0,
   onShield,
+  connected = true,
+  onConnect,
 }: {
   publicBalance: number;
   token: string;
   feeStrk?: number;
   onShield?: (amount: number) => Promise<string | void>;
+  connected?: boolean;
+  onConnect?: () => void;
 }) {
   const [amount, setAmount] = useState("");
+  const [selectedToken, setSelectedToken] = useState(token);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [error, setError] = useState<string>();
   const [phase, setPhase] = useState<"form" | "submitting" | "done">("form");
   const [done, setDone] = useState<{ amount: number; txHash?: string }>({ amount: 0 });
 
-  const maxShield = Math.max(0, publicBalance - feeStrk);
-
-  function setPercentage(pct: number) {
-    if (publicBalance <= 0) return;
-    const raw = (publicBalance * pct) / 100;
-    const calc = Math.max(0, raw - feeStrk);
-    setAmount(calc > 0 ? Number(calc.toFixed(4)).toString() : "0");
-    setError(undefined);
-  }
+  const numAmount = Number(amount) || 0;
+  const tokenPrice = selectedToken === "ETH" ? 2500 : selectedToken === "USDC" ? 1 : 0.42;
+  const usdValue = (numAmount * tokenPrice).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!connected) {
+      onConnect?.();
+      return;
+    }
     const value = Number(amount);
     if (!amount || !Number.isFinite(value) || value <= 0) {
       setError("Please enter a valid amount to shield.");
       return;
     }
-    if (value > maxShield) {
-      setError(`Max shieldable amount is ${formatAmount(maxShield)} ${token} (after reserving ${feeStrk} STRK fee).`);
+    if (value > publicBalance) {
+      setError(`Insufficient balance. You have ${formatAmount(publicBalance)} ${selectedToken}.`);
       return;
     }
 
@@ -393,7 +464,7 @@ export function ShieldTab({
     return (
       <DoneModal
         title="Funds Shielded into Pool"
-        detail={`${formatAmount(done.amount)} ${token} has been successfully deposited into the STRK20 privacy pool. It becomes spendable in private notes within ~5 minutes.`}
+        detail={`${formatAmount(done.amount)} ${selectedToken} has been successfully deposited into the STRK20 privacy pool. It becomes spendable in private notes within ~5 minutes.`}
         txHash={done.txHash}
         onDone={() => {
           setPhase("form");
@@ -406,110 +477,92 @@ export function ShieldTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
-      <div className="flex items-center justify-between pb-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-            <ShieldPlus size={20} />
-          </span>
-          <div>
-            <h2 className="text-[17px] font-bold text-fg">Shield STRK</h2>
-            <p className="text-[12px] text-muted">Deposit public STRK into the STRK20 Privacy Pool</p>
-          </div>
-        </div>
-        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
-          Deposit
-        </span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {/* Source & Destination Preview */}
-        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-3">
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted">From Public Wallet</span>
-            <span className="font-mono font-medium text-fg">
-              {formatAmount(publicBalance)} {token}
-            </span>
-          </div>
-          <div className="flex items-center justify-center">
-            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-fg ring-1 ring-border">
-              ↓
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted">To Shielded Pool</span>
-            <span className="font-semibold text-fg flex items-center gap-1.5">
-              <Lock size={13} /> Private Balance
-            </span>
-          </div>
-        </div>
-
-        {/* Amount Input */}
-        <div className="space-y-2">
+    <div className="max-w-[460px] mx-auto rounded-[32px] bg-white p-4 sm:p-5 border border-[#e4e7ec] shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* Top Input Box */}
+        <div className="rounded-[24px] border border-[#e4e7ec] bg-[#fcfdfd] p-5 space-y-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-border-strong focus-within:border-border-strong">
           <div className="flex items-center justify-between">
-            <label className="text-[13px] font-semibold text-fg">Amount to Shield</label>
-            <span className="text-[12px] text-muted">
-              Available: <span className="font-mono font-medium text-fg">{formatAmount(publicBalance)} {token}</span>
+            <span className="text-[13px] sm:text-[14px] font-semibold text-fg">
+              You&apos;re Shielding
             </span>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center justify-between gap-3">
             <input
               type="text"
               inputMode="decimal"
-              placeholder="0.00"
+              placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => {
+                setError(undefined);
+                setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+              }}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full bg-transparent font-normal text-4xl sm:text-5xl text-fg outline-none placeholder:text-[#98a2b3]"
             />
-            <div className="absolute inset-y-0 right-3 flex items-center gap-2">
-              <span className="font-semibold text-muted text-[14px]">{token}</span>
-            </div>
+
+            {/* Token Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setTokenModalOpen(true)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef2f6] hover:bg-[#e2e8f0] px-3.5 py-1.5 text-[13px] font-medium text-fg cursor-pointer transition-colors"
+            >
+              <span>{selectedToken}</span>
+              <span className="text-[11px] text-muted">↕</span>
+            </button>
           </div>
 
-          {/* Quick percentage buttons */}
-          <div className="grid grid-cols-4 gap-2 pt-1">
-            {[25, 50, 75, 100].map((pct) => (
+          <div className="flex items-center justify-between pt-1 text-[13px] text-muted">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px]">↓↑</span>
+              <span>{usdValue}</span>
+            </div>
+            <div>
+              Balance: <span className="font-mono text-fg">{formatAmount(publicBalance)}</span> ·{" "}
               <button
-                key={pct}
                 type="button"
-                onClick={() => setPercentage(pct)}
-                disabled={busy || publicBalance <= 0}
-                className="h-8 rounded-xl bg-surface-2 text-[12px] font-medium text-fg ring-1 ring-border transition-colors hover:bg-zinc-200 disabled:opacity-40"
+                onClick={() => setAmount(String(publicBalance))}
+                className="font-medium text-fg hover:text-fg transition-colors"
               >
-                {pct === 100 ? "Max" : `${pct}%`}
+                Max
               </button>
-            ))}
-          </div>
-
-          {error && (
-            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
-              {error}
             </div>
-          )}
-        </div>
-
-        {/* Fee & Privacy Info */}
-        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
-          <div className="flex justify-between text-muted">
-            <span>STRK20 Protocol Fee</span>
-            <span className="font-mono font-semibold text-fg">{feeStrk} {token}</span>
-          </div>
-          <div className="flex justify-between text-muted">
-            <span>Note Maturity Window</span>
-            <span className="text-fg font-medium">~5 minutes (10 blocks)</span>
-          </div>
-          <div className="flex justify-between text-muted">
-            <span>Privacy Guarantee</span>
-            <span className="text-fg font-semibold">Zero Calldata Leakage</span>
           </div>
         </div>
 
-        <PrimaryButton type="submit" busy={busy}>
-          {busy ? "Shielding Funds…" : `Shield ${token}`}
-        </PrimaryButton>
+        {/* Shielding Fee Container */}
+        <div className="rounded-[20px] border border-[#e4e7ec] bg-white px-5 py-4 flex items-center justify-between text-[14px] shadow-sm">
+          <span className="text-muted font-medium">Shielding Fee</span>
+          <span className="text-fg font-medium">No Fee · $0.00</span>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Action Button */}
+        {!connected ? (
+          <PrimaryButton type="button" onClick={onConnect}>
+            Get Started
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton type="submit" busy={busy}>
+            {busy ? "Shielding Funds…" : "Get Started"}
+          </PrimaryButton>
+        )}
       </form>
+
+      <TokenSelectModal
+        open={tokenModalOpen}
+        onClose={() => setTokenModalOpen(false)}
+        selected={selectedToken}
+        onSelect={(t) => {
+          setSelectedToken(t);
+          setTokenModalOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -518,19 +571,25 @@ export function ShieldTab({
 
 export function TransferTab({
   spendable,
-  token,
-  feeStrk = 6,
+  token = "STRK",
+  feeStrk = 0,
   onSubmit,
   checkRecipient,
+  connected = true,
+  onConnect,
 }: {
   spendable: number;
   token: string;
   feeStrk?: number;
   onSubmit?: (recipient: string, amount: number) => Promise<string | void>;
   checkRecipient?: (recipient: string) => Promise<boolean | undefined>;
+  connected?: boolean;
+  onConnect?: () => void;
 }) {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
+  const [selectedToken, setSelectedToken] = useState(token);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [errors, setErrors] = useState<{ recipient?: string; amount?: string }>({});
   const [phase, setPhase] = useState<"form" | "submitting" | "done">("form");
   const [recipientValid, setRecipientValid] = useState<boolean | null>(null);
@@ -540,7 +599,12 @@ export function TransferTab({
     recipient: "",
   });
 
-  const maxSend = Math.max(0, spendable - feeStrk);
+  const numAmount = Number(amount) || 0;
+  const tokenPrice = selectedToken === "ETH" ? 2500 : selectedToken === "USDC" ? 1 : 0.42;
+  const usdValue = (numAmount * tokenPrice).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   async function handleRecipientBlur() {
     const trimmed = recipient.trim();
@@ -569,6 +633,10 @@ export function TransferTab({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!connected) {
+      onConnect?.();
+      return;
+    }
     const next: typeof errors = {};
 
     let parsedRecipient = "";
@@ -581,8 +649,8 @@ export function TransferTab({
     const value = Number(amount);
     if (!amount || !Number.isFinite(value) || value <= 0) {
       next.amount = "Enter a valid amount to send.";
-    } else if (value > maxSend) {
-      next.amount = `Max sendable is ${formatAmount(maxSend)} ${token} (${feeStrk} STRK fee reserved).`;
+    } else if (value > spendable) {
+      next.amount = `Max sendable is ${formatAmount(spendable)} ${selectedToken}.`;
     }
 
     setErrors(next);
@@ -620,7 +688,7 @@ export function TransferTab({
     return (
       <DoneModal
         title="Private Transfer Executed"
-        detail={`${formatAmount(sent.amount)} ${token} has been privately routed through the STRK20 pool to ${truncateAddress(sent.recipient)}. Zero sender linkage exists on-chain.`}
+        detail={`${formatAmount(sent.amount)} ${selectedToken} has been privately routed through the STRK20 pool to ${truncateAddress(sent.recipient)}. Zero sender linkage exists on-chain.`}
         txHash={sent.txHash}
         onDone={() => {
           setPhase("form");
@@ -634,114 +702,356 @@ export function TransferTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
-      <div className="flex items-center justify-between pb-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-            <ArrowUpRight size={20} />
-          </span>
-          <div>
-            <h2 className="text-[17px] font-bold text-fg">Private Transfer</h2>
-            <p className="text-[12px] text-muted">Relayer-submitted STARK proof note creation</p>
-          </div>
-        </div>
-        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
-          ZK Shielded
-        </span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        {/* Recipient Input */}
-        <div className="space-y-2">
+    <div className="max-w-[460px] mx-auto rounded-[32px] bg-white p-4 sm:p-5 border border-[#e4e7ec] shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* Top Input Box */}
+        <div className="rounded-[24px] border border-[#e4e7ec] bg-[#fcfdfd] p-5 space-y-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-border-strong focus-within:border-border-strong">
           <div className="flex items-center justify-between">
-            <label className="text-[13px] font-semibold text-fg">Recipient Address</label>
-            {checkingRecipient ? (
-              <span className="flex items-center gap-1 text-[11px] text-muted">
-                <Spinner size={12} /> Checking viewing key…
-              </span>
-            ) : recipientValid === true ? (
-              <span className="flex items-center gap-1 text-[11px] text-fg font-semibold">
-                <Check size={12} /> Viewing key registered
-              </span>
-            ) : recipientValid === false ? (
-              <span className="text-[11px] text-muted font-medium">Viewing key not detected</span>
-            ) : null}
-          </div>
-
-          <input
-            type="text"
-            placeholder="0x…"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-            onBlur={handleRecipientBlur}
-            disabled={busy}
-            className="h-14 w-full rounded-2xl bg-surface px-4 font-mono text-[13px] text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
-          />
-          {errors.recipient && (
-            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
-              {errors.recipient}
-            </div>
-          )}
-        </div>
-
-        {/* Amount Input */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[13px] font-semibold text-fg">Amount</label>
-            <span className="text-[12px] text-muted">
-              Shielded: <span className="font-mono font-medium text-fg">{formatAmount(spendable)} {token}</span>
+            <span className="text-[13px] sm:text-[14px] font-semibold text-fg">
+              You&apos;re Sending
             </span>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center justify-between gap-3">
             <input
               type="text"
               inputMode="decimal"
-              placeholder="0.00"
+              placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => {
+                setErrors((prev) => ({ ...prev, amount: undefined }));
+                setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+              }}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full bg-transparent font-normal text-4xl sm:text-5xl text-fg outline-none placeholder:text-[#98a2b3]"
             />
-            <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+
+            {/* Token Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setTokenModalOpen(true)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef2f6] hover:bg-[#e2e8f0] px-3.5 py-1.5 text-[13px] font-medium text-fg cursor-pointer transition-colors"
+            >
+              <span>{selectedToken}</span>
+              <span className="text-[11px] text-muted">↕</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-[13px] text-muted">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px]">↓↑</span>
+              <span>{usdValue}</span>
+            </div>
+            <div>
+              Shielded: <span className="font-mono text-fg">{formatAmount(spendable)}</span> ·{" "}
               <button
                 type="button"
-                onClick={() => setAmount(String(maxSend))}
-                disabled={busy}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg hover:bg-black hover:text-white transition-colors"
+                onClick={() => setAmount(String(spendable))}
+                className="font-medium text-fg hover:text-fg transition-colors"
               >
                 Max
               </button>
-              <span className="font-semibold text-muted text-[14px]">{token}</span>
             </div>
-          </div>
-          {errors.amount && (
-            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
-              {errors.amount}
-            </div>
-          )}
-        </div>
-
-        {/* Relayer & Privacy details */}
-        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
-          <div className="flex justify-between text-muted">
-            <span>AVNU Paymaster Gas</span>
-            <span className="text-fg font-semibold">Sponsored / Relayed</span>
-          </div>
-          <div className="flex justify-between text-muted">
-            <span>STRK20 Pool Fee</span>
-            <span className="font-mono font-semibold text-fg">{feeStrk} {token}</span>
-          </div>
-          <div className="flex justify-between text-muted">
-            <span>Calldata Anonymity</span>
-            <span className="text-fg font-medium">Sender omitted from calldata</span>
           </div>
         </div>
 
-        <PrimaryButton type="submit" busy={busy}>
-          {busy ? "Sending Privately…" : "Execute Private Transfer"}
-        </PrimaryButton>
+        {/* Recipient Address Box */}
+        <div className="rounded-[20px] border border-[#e4e7ec] bg-white p-4 space-y-1.5 shadow-sm">
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="font-semibold text-fg">Recipient Address</span>
+            {checkingRecipient ? (
+              <span className="text-[11px] text-muted">Checking key…</span>
+            ) : recipientValid === true ? (
+              <span className="text-[11px] text-[#2ca01c] font-semibold">Viewing key registered</span>
+            ) : null}
+          </div>
+          <input
+            type="text"
+            placeholder="0x… or Starknet ID"
+            value={recipient}
+            onChange={(e) => {
+              setErrors((prev) => ({ ...prev, recipient: undefined }));
+              setRecipient(e.target.value);
+            }}
+            onBlur={handleRecipientBlur}
+            disabled={busy}
+            className="w-full bg-transparent font-mono text-[13px] text-fg outline-none placeholder:text-muted"
+          />
+        </div>
+
+        {/* Transfer Fee Container */}
+        <div className="rounded-[18px] border border-[#e4e7ec] bg-white px-5 py-4 flex items-center justify-between text-[14px] shadow-sm">
+          <span className="text-muted font-medium">Transfer Fee</span>
+          <span className="text-fg font-medium">No Fee · $0.00</span>
+        </div>
+
+        {errors.recipient && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] font-medium text-red-700">
+            {errors.recipient}
+          </div>
+        )}
+        {errors.amount && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] font-medium text-red-700">
+            {errors.amount}
+          </div>
+        )}
+
+        {/* Action Button */}
+        {!connected ? (
+          <PrimaryButton type="button" onClick={onConnect}>
+            Get Started
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton type="submit" busy={busy}>
+            {busy ? "Sending Privately…" : "Get Started"}
+          </PrimaryButton>
+        )}
       </form>
+
+      <TokenSelectModal
+        open={tokenModalOpen}
+        onClose={() => setTokenModalOpen(false)}
+        selected={selectedToken}
+        onSelect={(t) => {
+          setSelectedToken(t);
+          setTokenModalOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------- Swap Tab */
+
+export function SwapTab({
+  spendable,
+  token = "STRK",
+  feeStrk = 0,
+  connected = true,
+  onConnect,
+  onSwap,
+}: {
+  spendable: number;
+  token?: string;
+  feeStrk?: number;
+  connected?: boolean;
+  onConnect?: () => void;
+  onSwap?: (fromAmount: number, fromToken: string, toToken: string) => Promise<string | void>;
+}) {
+  const [amount, setAmount] = useState("");
+  const [fromToken, setFromToken] = useState("STRK");
+  const [toToken, setToToken] = useState("USDC");
+  const [tokenModalTarget, setTokenModalTarget] = useState<"from" | "to" | null>(null);
+  const [error, setError] = useState<string>();
+  const [phase, setPhase] = useState<"form" | "submitting" | "done">("form");
+  const [done, setDone] = useState<{ amount: number; toAmount: number; txHash?: string }>({
+    amount: 0,
+    toAmount: 0,
+  });
+
+  const rate = useMemo(() => {
+    if (fromToken === "STRK" && toToken === "USDC") return 0.42;
+    if (fromToken === "USDC" && toToken === "STRK") return 2.38;
+    if (fromToken === "STRK" && toToken === "ETH") return 0.00017;
+    if (fromToken === "ETH" && toToken === "STRK") return 5900;
+    if (fromToken === "ETH" && toToken === "USDC") return 2500;
+    if (fromToken === "USDC" && toToken === "ETH") return 0.0004;
+    return 1;
+  }, [fromToken, toToken]);
+
+  const numAmount = parseFloat(amount) || 0;
+  const estimatedReceive = numAmount > 0 ? (numAmount * rate).toFixed(4) : "0";
+  const usdValue = (numAmount * (fromToken === "ETH" ? 2500 : fromToken === "USDC" ? 1 : 0.42)).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!connected) {
+      onConnect?.();
+      return;
+    }
+    if (!numAmount || numAmount <= 0) {
+      setError("Please enter a valid amount.");
+      return;
+    }
+    if (numAmount > spendable) {
+      setError(`Amount exceeds shielded balance (${formatAmount(spendable)} ${fromToken}).`);
+      return;
+    }
+    setError(undefined);
+    setPhase("submitting");
+
+    try {
+      const res = await (onSwap
+        ? onSwap(numAmount, fromToken, toToken)
+        : new Promise<void>((r) => setTimeout(r, 1400)));
+      setDone({
+        amount: numAmount,
+        toAmount: parseFloat(estimatedReceive),
+        txHash: typeof res === "string" ? res : undefined,
+      });
+      setPhase("done");
+    } catch (err) {
+      setError(friendlyError(err));
+      setPhase("form");
+    }
+  }
+
+  if (phase === "done") {
+    return (
+      <DoneModal
+        title="Private Swap Completed"
+        detail={`Successfully swapped ${formatAmount(done.amount)} ${fromToken} for ~${formatAmount(done.toAmount)} ${toToken} inside the privacy pool.`}
+        txHash={done.txHash}
+        onDone={() => {
+          setPhase("form");
+          setAmount("");
+        }}
+      />
+    );
+  }
+
+  const busy = phase === "submitting";
+
+  return (
+    <div className="max-w-[460px] mx-auto rounded-[32px] bg-white p-4 sm:p-5 border border-[#e4e7ec] shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* You're Swapping Container */}
+        <div className="rounded-[24px] border border-[#e4e7ec] bg-[#fcfdfd] p-5 space-y-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-border-strong focus-within:border-border-strong">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] sm:text-[14px] font-semibold text-fg">
+              You&apos;re Swapping
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              value={amount}
+              onChange={(e) => {
+                setError(undefined);
+                setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+              }}
+              disabled={busy}
+              className="w-full bg-transparent font-normal text-4xl sm:text-5xl text-fg outline-none placeholder:text-[#98a2b3]"
+            />
+
+            {/* Token Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setTokenModalTarget("from")}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef2f6] hover:bg-[#e2e8f0] px-3.5 py-1.5 text-[13px] font-medium text-fg cursor-pointer transition-colors"
+            >
+              <span>{fromToken}</span>
+              <span className="text-[11px] text-muted">↕</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-[13px] text-muted">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px]">↓↑</span>
+              <span>{usdValue}</span>
+            </div>
+            <div>
+              Balance: <span className="font-mono text-fg">{formatAmount(spendable)}</span> ·{" "}
+              <button
+                type="button"
+                onClick={() => setAmount(String(spendable))}
+                className="font-medium text-fg hover:text-fg transition-colors"
+              >
+                Max
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Swap Flip Button */}
+        <div className="flex items-center justify-center -my-1">
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.15, rotate: 180 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 350, damping: 18 }}
+            onClick={() => {
+              const temp = fromToken;
+              setFromToken(toToken);
+              setToToken(temp);
+            }}
+            className="flex size-9 items-center justify-center rounded-full bg-white border border-[#e4e7ec] text-fg shadow-sm hover:bg-[#eef2f6] text-[14px]"
+            title="Switch tokens"
+          >
+            ⇅
+          </motion.button>
+        </div>
+
+        {/* You Receive Container */}
+        <div className="rounded-[24px] border border-[#e4e7ec] bg-white p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] sm:text-[14px] font-semibold text-fg">
+              You Receive (Estimated)
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="w-full bg-transparent font-normal text-4xl sm:text-5xl text-fg">
+              {numAmount > 0 ? estimatedReceive : "0"}
+            </div>
+
+            {/* Token Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setTokenModalTarget("to")}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef2f6] hover:bg-[#e2e8f0] px-3.5 py-1.5 text-[13px] font-medium text-fg cursor-pointer transition-colors"
+            >
+              <span>{toToken}</span>
+              <span className="text-[11px] text-muted">↕</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-[13px] text-muted">
+            <span>Rate: 1 {fromToken} ≈ {rate} {toToken}</span>
+            <span className="text-fg font-medium">AVNU DEX</span>
+          </div>
+        </div>
+
+        {/* Swap Fee Container */}
+        <div className="rounded-[18px] border border-[#e4e7ec] bg-white px-5 py-4 flex items-center justify-between text-[14px] shadow-sm">
+          <span className="text-muted font-medium">Swap Fee</span>
+          <span className="text-fg font-medium">No Fee · $0.00</span>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Action Button */}
+        {!connected ? (
+          <PrimaryButton type="button" onClick={onConnect}>
+            Get Started
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton type="submit" busy={busy}>
+            {busy ? "Swapping Privately…" : "Get Started"}
+          </PrimaryButton>
+        )}
+      </form>
+
+      <TokenSelectModal
+        open={tokenModalTarget !== null}
+        onClose={() => setTokenModalTarget(null)}
+        selected={tokenModalTarget === "from" ? fromToken : toToken}
+        onSelect={(t) => {
+          if (tokenModalTarget === "from") setFromToken(t);
+          else setToToken(t);
+          setTokenModalTarget(null);
+        }}
+      />
     </div>
   );
 }
@@ -750,31 +1060,46 @@ export function TransferTab({
 
 export function UnshieldTab({
   shieldedBalance,
-  token,
-  feeStrk = 6,
+  token = "STRK",
+  feeStrk = 0,
   onUnshield,
+  connected = true,
+  onConnect,
 }: {
   shieldedBalance: number;
-  token: string;
+  token?: string;
   feeStrk?: number;
   onUnshield?: (amount: number) => Promise<string | void>;
+  connected?: boolean;
+  onConnect?: () => void;
 }) {
   const [amount, setAmount] = useState("");
+  const [selectedToken, setSelectedToken] = useState(token);
+  const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [error, setError] = useState<string>();
   const [phase, setPhase] = useState<"form" | "submitting" | "done">("form");
   const [done, setDone] = useState<{ amount: number; txHash?: string }>({ amount: 0 });
 
-  const maxUnshield = Math.max(0, shieldedBalance - feeStrk);
+  const numAmount = Number(amount) || 0;
+  const tokenPrice = selectedToken === "ETH" ? 2500 : selectedToken === "USDC" ? 1 : 0.42;
+  const usdValue = (numAmount * tokenPrice).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!connected) {
+      onConnect?.();
+      return;
+    }
     const value = Number(amount);
     if (!amount || !Number.isFinite(value) || value <= 0) {
       setError("Please enter an amount to unshield.");
       return;
     }
-    if (value > maxUnshield) {
-      setError(`Max unshieldable is ${formatAmount(maxUnshield)} ${token} (${feeStrk} STRK fee reserved).`);
+    if (value > shieldedBalance) {
+      setError(`Max unshieldable is ${formatAmount(shieldedBalance)} ${selectedToken}.`);
       return;
     }
 
@@ -796,7 +1121,7 @@ export function UnshieldTab({
     return (
       <DoneModal
         title="Funds Unshielded"
-        detail={`${formatAmount(done.amount)} ${token} has been withdrawn from the privacy pool back into your transparent public account.`}
+        detail={`${formatAmount(done.amount)} ${selectedToken} has been withdrawn from the privacy pool back into your transparent public account.`}
         txHash={done.txHash}
         onDone={() => {
           setPhase("form");
@@ -809,97 +1134,92 @@ export function UnshieldTab({
   const busy = phase === "submitting";
 
   return (
-    <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm">
-      <div className="flex items-center justify-between pb-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-            <ArrowLeftRight size={20} />
-          </span>
-          <div>
-            <h2 className="text-[17px] font-bold text-fg">Unshield STRK</h2>
-            <p className="text-[12px] text-muted">Withdraw shielded funds back to your public balance</p>
-          </div>
-        </div>
-        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg ring-1 ring-border">
-          Withdraw
-        </span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        {/* Source / Dest Preview */}
-        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-3">
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted">From Shielded Pool</span>
-            <span className="font-mono font-medium text-fg">
-              {formatAmount(shieldedBalance)} {token}
-            </span>
-          </div>
-          <div className="flex items-center justify-center">
-            <span className="flex size-7 items-center justify-center rounded-full bg-surface text-fg ring-1 ring-border">
-              ↓
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted">To Public Balance</span>
-            <span className="font-semibold text-muted flex items-center gap-1.5">
-              <Unlock size={13} /> Transparent Wallet
-            </span>
-          </div>
-        </div>
-
-        {/* Amount Input */}
-        <div className="space-y-2">
+    <div className="max-w-[460px] mx-auto rounded-[32px] bg-white p-4 sm:p-5 border border-[#e4e7ec] shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* Top Input Box */}
+        <div className="rounded-[24px] border border-[#e4e7ec] bg-[#fcfdfd] p-5 space-y-3 shadow-sm transition-all focus-within:ring-2 focus-within:ring-border-strong focus-within:border-border-strong">
           <div className="flex items-center justify-between">
-            <label className="text-[13px] font-semibold text-fg">Amount to Unshield</label>
-            <span className="text-[12px] text-muted">
-              Shielded: <span className="font-mono font-medium text-fg">{formatAmount(shieldedBalance)} {token}</span>
+            <span className="text-[13px] sm:text-[14px] font-semibold text-fg">
+              You&apos;re Unshielding
             </span>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center justify-between gap-3">
             <input
               type="text"
               inputMode="decimal"
-              placeholder="0.00"
+              placeholder="0"
               value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              onChange={(e) => {
+                setError(undefined);
+                setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+              }}
               disabled={busy}
-              className="h-14 w-full rounded-2xl bg-surface pl-4 pr-24 font-mono text-lg font-medium text-fg ring-1 ring-border transition-all placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full bg-transparent font-normal text-4xl sm:text-5xl text-fg outline-none placeholder:text-[#98a2b3]"
             />
-            <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+
+            {/* Token Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setTokenModalOpen(true)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef2f6] hover:bg-[#e2e8f0] px-3.5 py-1.5 text-[13px] font-medium text-fg cursor-pointer transition-colors"
+            >
+              <span>{selectedToken}</span>
+              <span className="text-[11px] text-muted">↕</span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-[13px] text-muted">
+            <div className="flex items-center gap-1">
+              <span className="text-[11px]">↓↑</span>
+              <span>{usdValue}</span>
+            </div>
+            <div>
+              Shielded: <span className="font-mono text-fg">{formatAmount(shieldedBalance)}</span> ·{" "}
               <button
                 type="button"
-                onClick={() => setAmount(String(maxUnshield))}
-                disabled={busy}
-                className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg hover:bg-black hover:text-white transition-colors"
+                onClick={() => setAmount(String(shieldedBalance))}
+                className="font-medium text-fg hover:text-fg transition-colors"
               >
                 Max
               </button>
-              <span className="font-semibold text-muted text-[14px]">{token}</span>
             </div>
           </div>
-          {error && (
-            <div className="rounded-xl border border-black bg-surface-2 p-3 text-[12px] font-medium text-fg">
-              {error}
-            </div>
-          )}
         </div>
 
-        {/* Hygiene Warning (Umbra best practice) */}
-        <div className="rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-2 text-[12px]">
-          <div className="flex items-center gap-1.5 text-fg font-semibold">
-            <Info size={14} />
-            <span>Privacy Note:</span>
+        {/* Unshielding Fee Container */}
+        <div className="rounded-[18px] border border-[#e4e7ec] bg-white px-5 py-4 flex items-center justify-between text-[14px] shadow-sm">
+          <span className="text-muted font-medium">Unshielding Fee</span>
+          <span className="text-fg font-medium">No Fee · $0.00</span>
+        </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-[12px] font-medium text-red-700">
+            {error}
           </div>
-          <p className="text-muted leading-relaxed">
-            Unshielding creates a public withdrawal event on Voyager. To maximize privacy, avoid immediately consolidating with known public identities.
-          </p>
-        </div>
+        )}
 
-        <PrimaryButton type="submit" busy={busy}>
-          {busy ? "Unshielding Funds…" : `Unshield ${token}`}
-        </PrimaryButton>
+        {/* Action Button */}
+        {!connected ? (
+          <PrimaryButton type="button" onClick={onConnect}>
+            Get Started
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton type="submit" busy={busy}>
+            {busy ? "Unshielding Funds…" : "Get Started"}
+          </PrimaryButton>
+        )}
       </form>
+
+      <TokenSelectModal
+        open={tokenModalOpen}
+        onClose={() => setTokenModalOpen(false)}
+        selected={selectedToken}
+        onSelect={(t) => {
+          setSelectedToken(t);
+          setTokenModalOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -908,9 +1228,13 @@ export function UnshieldTab({
 
 export function ReceiveTab({
   address,
+  connected = true,
+  onConnect,
 }: {
   address: string;
   receivable?: boolean;
+  connected?: boolean;
+  onConnect?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -927,23 +1251,30 @@ export function ReceiveTab({
   return (
     <div className="max-w-xl mx-auto rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm text-center">
       <div className="flex items-center justify-between pb-5 border-b border-border text-left">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-            <QrCode size={20} />
-          </span>
-          <div>
-            <h2 className="text-[17px] font-bold text-fg">Receive Privately</h2>
-            <p className="text-[12px] text-muted">Umbra-style stealth note discovery</p>
-          </div>
+        <div>
+          <h2 className="text-[17px] font-bold text-fg">Receive Privately</h2>
+          <p className="text-[12px] text-muted">Umbra-style stealth note discovery</p>
         </div>
         <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-fg ring-1 ring-border">
-          Active
+          {connected ? "Active" : "Ready"}
         </span>
       </div>
 
-      <div className="mt-8 flex flex-col items-center gap-6">
-        {/* QR container */}
-        <div className="rounded-3xl bg-white p-5 shadow-lg ring-1 ring-border">
+      {!connected || !address ? (
+        <div className="mt-8 flex flex-col items-center gap-5 py-6">
+          <p className="max-w-md text-[14px] leading-relaxed text-muted">
+            Connect your Starknet wallet to generate and view your private receiving stealth address and QR code.
+          </p>
+          <div className="w-full max-w-xs">
+            <PrimaryButton onClick={onConnect}>
+              Connect wallet
+            </PrimaryButton>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8 flex flex-col items-center gap-6">
+          {/* QR container */}
+          <div className="rounded-3xl bg-white p-5 shadow-lg ring-1 ring-border">
           <QRCode
             value={address}
             size={200}
@@ -960,29 +1291,21 @@ export function ReceiveTab({
           </div>
 
           <PrimaryButton onClick={copy}>
-            {copied ? (
-              <>
-                <Check size={16} /> Copied to Clipboard
-              </>
-            ) : (
-              <>
-                <Copy size={16} /> Copy Receive Address
-              </>
-            )}
+            {copied ? "Copied to Clipboard" : "Copy Receive Address"}
           </PrimaryButton>
         </div>
 
         {/* Discovery Service explanation */}
         <div className="rounded-2xl bg-surface-2 p-4 text-left ring-1 ring-border space-y-1.5 text-[12px] text-muted">
-          <div className="flex items-center gap-1.5 text-fg font-semibold">
-            <ShieldCheck size={14} />
+          <div className="text-fg font-semibold">
             <span>How incoming money is discovered:</span>
           </div>
           <p className="leading-relaxed">
             Senders deposit notes into the STRK20 pool encrypted for your viewing key. Your wallet scans the pool events to detect and unlock incoming funds automatically.
           </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1037,37 +1360,26 @@ export function ActivityTab({
         <div className="mt-4 divide-y divide-border">
           {filtered.map((item) => (
             <div key={item.id} className="py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-                  {item.kind === "shield" ? (
-                    <ShieldPlus size={18} />
-                  ) : item.kind === "unshield" ? (
-                    <ArrowLeftRight size={18} />
-                  ) : (
-                    <ArrowUpRight size={18} />
-                  )}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[14px] font-semibold text-fg capitalize">
-                      {item.kind === "sent" ? "Private Transfer" : item.kind}
-                    </span>
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[10px] text-muted ring-1 ring-border">
-                      STRK20 Pool
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[12px] text-muted mt-0.5">
-                    <span>{item.at}</span>
-                    <span>•</span>
-                    <a
-                      href={txUrl(item.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-fg hover:underline font-mono text-[11px]"
-                    >
-                      {truncateAddress(item.id, 8, 6)} <ExternalLink size={10} />
-                    </a>
-                  </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-semibold text-fg capitalize">
+                    {item.kind === "sent" ? "Private Transfer" : item.kind}
+                  </span>
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5 font-mono text-[10px] text-muted ring-1 ring-border">
+                    STRK20 Pool
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[12px] text-muted mt-0.5">
+                  <span>{item.at}</span>
+                  <span>•</span>
+                  <a
+                    href={txUrl(item.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-fg hover:underline font-mono text-[11px]"
+                  >
+                    {truncateAddress(item.id, 8, 6)}
+                  </a>
                 </div>
               </div>
 
