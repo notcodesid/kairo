@@ -1,6 +1,25 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
+    "experiential": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Experiential",
+      "options": {
+        "baseURL": "https://api.experientiallabs.ai/v1",
+        "apiKey": "{env:EXPLABS_API_KEY}"
+      },
+      "models": {
+        "deepseek-v4-flash": {
+          "name": "DeepSeek V4 Flash"
+        },
+        "gpt-6-astra": {
+          "name": "GPT-6 Astra"
+        },
+        "claude-fable-5.1": {
+          "name": "Claude Fable 5.1"
+        }
+      }
+    },
     "agentrouter": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "AgentRouter",
@@ -14,5 +33,5 @@
       }
     }
   },
-  "model": "agentrouter/claude-opus-4-8"
+  "model": "experiential/deepseek-v4-flash"
 }
