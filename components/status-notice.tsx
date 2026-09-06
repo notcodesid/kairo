@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Shield, Spinner } from "@/components/icons";
+import { Spinner } from "@/components/icons";
 import { addressUrl } from "@/lib/explorer";
 import type { Strk20Support } from "@/lib/wallet-store";
 
@@ -40,14 +40,9 @@ export function SetupCard({
 
   return (
     <section className="overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-surface-2 text-fg ring-1 ring-border">
-          <Shield size={20} />
-        </span>
-        <div>
-          <h2 className="text-[16px] font-bold text-fg">Activate Private Balances</h2>
-          <p className="text-[12px] text-muted">One-time cryptographic viewing key registration</p>
-        </div>
+      <div>
+        <h2 className="text-[16px] font-bold text-fg">Activate Private Balances</h2>
+        <p className="text-[12px] text-muted">One-time cryptographic viewing key registration</p>
       </div>
 
       <ol className="mt-5 space-y-3">
@@ -73,9 +68,7 @@ export function SetupCard({
               <Spinner size={16} /> Checking the privacy pool…
             </>
           ) : (
-            <>
-              <Check size={16} /> I&apos;ve Shielded — Verify Registration
-            </>
+            "I've Shielded — Verify Registration"
           )}
         </button>
 
@@ -143,7 +136,7 @@ export function StatusNotice({
       {tone === "info" ? (
         <Spinner size={16} className="shrink-0 text-fg" />
       ) : (
-        <Shield size={16} className="shrink-0 text-fg" />
+        <span className="size-2 rounded-full bg-black shrink-0" />
       )}
       <span>{text}</span>
     </div>
