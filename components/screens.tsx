@@ -9,6 +9,12 @@ import {
   Copy,
   ExternalLink,
   Spinner,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
 } from "@/components/icons";
 import { txUrl } from "@/lib/explorer";
 import { formatAmount, splitAmount, truncateAddress } from "@/lib/format";
@@ -140,7 +146,7 @@ interface DashboardTabProps {
   token: string;
   address: string;
   activity: ActivityItem[];
-  onNavigate: (tab: "shield" | "transfer" | "unshield" | "receive" | "activity") => void;
+  onNavigate: (tab: "shield" | "transfer" | "swap" | "unshield" | "receive" | "activity") => void;
   showSetup?: boolean;
 }
 
@@ -152,149 +158,174 @@ export function DashboardTab({
   activity,
   onNavigate,
 }: DashboardTabProps) {
+  const [hideBalances, setHideBalances] = useState(false);
   const { int: sInt, frac: sFrac } = splitAmount(shielded);
-  const { int: pInt, frac: pFrac } = splitAmount(publicBalance);
+
+  const total = shielded + publicBalance;
+  const privateRatio = total > 0 ? Math.round((shielded / total) * 100) : 0;
+  const tokenRate = token === "ETH" ? 2500 : token === "USDC" ? 1 : 0.42;
+  const usdValue = (shielded * tokenRate).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div className="space-y-6">
-      {/* Hero Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* Shielded Balance Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm transition-all">
-          <div className="relative space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-fg">
-                Shielded Balance
-              </span>
-              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-semibold text-fg ring-1 ring-border">
-                Private & Unlinkable
-              </span>
-            </div>
-
-            <div className="flex items-baseline gap-2 pt-1">
-              <span className="font-mono text-4xl font-bold tracking-tight text-fg tabular-nums sm:text-5xl">
-                {sInt}
-                {sFrac && <span className="text-muted">.{sFrac}</span>}
-              </span>
-              <span className="text-xl font-semibold text-muted">{token}</span>
-            </div>
-
-            {pending > 0 ? (
-              <p className="flex items-center gap-2 text-[12px] text-muted font-medium">
-                <span className="size-2 rounded-full bg-fg animate-pulse" />
-                <span>+{formatAmount(pending)} {token} confirming note maturity (~5m)</span>
-              </p>
-            ) : (
-              <p className="text-[12px] text-muted">
-                Available for zero-knowledge private transfers and withdrawals.
-              </p>
-            )}
-
-            <div className="pt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigate("transfer")}
-                className="flex-1 flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800"
-              >
-                Send Privately
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("receive")}
-                className="flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                Receive
-              </button>
-            </div>
+      {/* Signature Asset & Privacy Hero Card */}
+      <div className="relative overflow-hidden rounded-3xl bg-surface p-6 sm:p-8 ring-1 ring-border shadow-sm transition-all">
+        {/* Top Header Status & Privacy Visibility Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-[#ff6122] animate-pulse" />
+            <span className="text-[12px] font-semibold text-fg">
+              Zero-Knowledge Pool Active
+            </span>
           </div>
-        </div>
 
-        {/* Public Balance Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-muted">
-                Public Balance
-              </span>
-              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-muted ring-1 ring-border">
-                On-Chain Starknet
-              </span>
-            </div>
-
-            <div className="flex items-baseline gap-2 pt-1">
-              <span className="font-mono text-4xl font-bold tracking-tight text-fg tabular-nums sm:text-5xl">
-                {pInt}
-                {pFrac && <span className="text-muted">.{pFrac}</span>}
-              </span>
-              <span className="text-xl font-semibold text-muted">{token}</span>
-            </div>
-
-            <p className="text-[12px] text-muted">
-              Standard Starknet balance visible on public block explorers.
-            </p>
-
-            <div className="pt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => onNavigate("shield")}
-                className="flex-1 flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200"
-              >
-                Shield Funds
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("unshield")}
-                className="flex items-center justify-center rounded-xl bg-surface-2 px-4 py-2.5 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-zinc-200 hover:text-fg"
-              >
-                Unshield
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Action Banner */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "Shield (Deposit)", desc: "Public → Private", tab: "shield" as const },
-          { label: "Private Send", desc: "STARK proof transfer", tab: "transfer" as const },
-          { label: "Unshield", desc: "Private → Public", tab: "unshield" as const },
-          { label: "Receive Stealth", desc: "QR & View Keys", tab: "receive" as const },
-        ].map((item) => (
           <button
-            key={item.label}
             type="button"
-            onClick={() => onNavigate(item.tab)}
-            className="group flex flex-col items-start gap-1 rounded-2xl bg-surface p-4 text-left ring-1 ring-border transition-all hover:bg-surface-2 hover:ring-border-strong"
+            onClick={() => setHideBalances((h) => !h)}
+            className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[11px] font-medium text-muted hover:text-fg ring-1 ring-border transition-colors"
           >
-            <span className="text-[13px] font-semibold text-fg group-hover:underline">{item.label}</span>
-            <span className="text-[11px] text-muted">{item.desc}</span>
+            {hideBalances ? (
+              <>
+                <Eye size={12} />
+                <span>Show</span>
+              </>
+            ) : (
+              <>
+                <EyeOff size={12} />
+                <span>Hide</span>
+              </>
+            )}
           </button>
-        ))}
+        </div>
+
+        {/* Hero Balance Metric */}
+        <div className="mt-5 space-y-1">
+          <p className="text-[12px] font-semibold text-muted uppercase tracking-wider">
+            Confidential Shielded Balance
+          </p>
+          <div className="flex items-baseline gap-2.5">
+            <span className="font-mono text-4xl sm:text-6xl font-bold tracking-tight text-fg tabular-nums">
+              {hideBalances ? "••••••" : sInt}
+              {!hideBalances && sFrac && <span className="text-muted">.{sFrac}</span>}
+            </span>
+            <span className="text-xl sm:text-2xl font-semibold text-muted">{token}</span>
+          </div>
+          <p className="text-[13px] font-mono text-muted">
+            {hideBalances ? "≈ $•••• USD" : `≈ $${usdValue} USD`}
+          </p>
+        </div>
+
+        {/* Segmented Privacy Allocation Bar */}
+        <div className="mt-6 rounded-2xl bg-surface-2 p-4 ring-1 ring-border space-y-3">
+          <div className="flex items-center justify-between text-[12px]">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-[#ff6122]" />
+              <span className="font-semibold text-fg">Private:</span>
+              <span className="font-mono font-medium text-fg">
+                {hideBalances ? "••••" : formatAmount(shielded)} {token} ({privateRatio}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-border-strong" />
+              <span className="text-muted">Public:</span>
+              <span className="font-mono text-muted">
+                {hideBalances ? "••••" : formatAmount(publicBalance)} {token}
+              </span>
+            </div>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-border flex">
+            <div
+              className="h-full rounded-full strk-pill-active transition-all duration-500"
+              style={{ width: `${Math.max(privateRatio, total === 0 ? 0 : 4)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Pending Note Maturity Notice */}
+        {pending > 0 && (
+          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-surface-2 px-4 py-2.5 text-[12px] text-muted ring-1 ring-border">
+            <span className="size-2 rounded-full bg-[#ff6122] animate-ping" />
+            <span>+{formatAmount(pending)} {token} confirming note maturity (~5m)</span>
+          </div>
+        )}
+
+        {/* Contextual Action Shortcuts */}
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => onNavigate("shield")}
+            className="flex items-center justify-center gap-2 rounded-xl strk-pill-active px-4 py-3 text-[13px] font-semibold text-white shadow-sm transition-all hover:opacity-90"
+          >
+            <ShieldCheck size={15} />
+            <span>Shield Funds</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate("transfer")}
+            className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-3 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <ArrowUpRight size={15} />
+            <span>Private Send</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate("swap")}
+            className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-3 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <ArrowLeftRight size={15} />
+            <span>Private Swap</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate("unshield")}
+            className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-3 text-[13px] font-semibold text-muted ring-1 ring-border transition-all hover:bg-zinc-200 hover:text-fg dark:hover:bg-zinc-800"
+          >
+            <ArrowDownLeft size={15} />
+            <span>Unshield</span>
+          </button>
+        </div>
       </div>
 
-      {/* Recent Activity Mini-Feed */}
-      <div className="rounded-3xl bg-surface p-6 ring-1 ring-border shadow-sm">
+      {/* Confidential Activity Ledger */}
+      <div className="rounded-3xl bg-surface p-6 sm:p-7 ring-1 ring-border shadow-sm">
         <div className="flex items-center justify-between pb-4 border-b border-border">
-          <h3 className="text-[15px] font-semibold text-fg">Recent Privacy Activity</h3>
+          <div>
+            <h3 className="text-[15px] font-semibold text-fg">Confidential Activity</h3>
+            <p className="text-[12px] text-muted mt-0.5">Session history and verified zero-knowledge notes</p>
+          </div>
           <button
             type="button"
             onClick={() => onNavigate("activity")}
-            className="text-[13px] font-semibold text-fg hover:underline"
+            className="text-[12px] font-semibold text-fg hover:opacity-75 transition-opacity"
           >
-            View all history →
+            View History →
           </button>
         </div>
 
         {activity.length > 0 ? (
           <ul className="mt-3 divide-y divide-border">
             {activity.slice(0, 4).map((item) => (
-              <li key={item.id} className="py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[13px] font-semibold text-fg capitalize">
-                    {item.kind === "sent" ? "Private Transfer" : item.kind}
-                  </p>
-                  <p className="text-[11px] text-muted mt-0.5">{item.at}</p>
+              <li key={item.id} className="py-3.5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-surface-2 ring-1 ring-border text-fg">
+                    {item.kind === "sent" ? (
+                      <ArrowUpRight size={15} />
+                    ) : item.kind === "received" ? (
+                      <ArrowDownLeft size={15} />
+                    ) : (
+                      <ShieldCheck size={15} />
+                    )}
+                  </span>
+                  <div>
+                    <p className="text-[13px] font-semibold text-fg capitalize">
+                      {item.kind === "sent" ? "Private Transfer" : item.kind === "received" ? "Private Receive" : `${item.kind} Assets`}
+                    </p>
+                    <p className="text-[11px] text-muted mt-0.5">{item.at}</p>
+                  </div>
                 </div>
 
                 <div className="text-right">
@@ -302,16 +333,18 @@ export function DashboardTab({
                     {item.kind === "sent" ? "-" : "+"}
                     {formatAmount(item.amount)} {token}
                   </p>
-                  <span className="inline-block rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-fg ring-1 ring-border">
-                    Confirmed
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold text-fg ring-1 ring-border mt-0.5">
+                    <span className="size-1 rounded-full bg-[#ff6122]" />
+                    Zero calldata
                   </span>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="py-8 text-center text-muted">
-            <p className="text-[13px]">No recent pool activity recorded for this session.</p>
+          <div className="py-10 text-center text-muted space-y-1">
+            <p className="text-[13px] font-medium text-fg">No activity in current session</p>
+            <p className="text-[12px]">Your historical balance notes and cryptographic nullifiers remain private.</p>
           </div>
         )}
       </div>
