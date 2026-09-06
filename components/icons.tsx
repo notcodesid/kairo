@@ -233,11 +233,19 @@ export function Spinner({ size = 20, ...p }: IconProps) {
 }
 
 /** Kairo logo mark — two solid circular nodes (minimalist two-circle mark). */
-export function KairoMark({ size = 22, ...p }: IconProps) {
+export function KairoMark({ size = 24, className, ...p }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" {...p}>
-      <circle cx="50" cy="39" r="15" />
-      <circle cx="35" cy="69" r="7" />
+    <svg
+      width={Math.round(size * 0.73)}
+      height={size}
+      viewBox="0 0 38 52"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+      {...p}
+    >
+      <circle cx="23" cy="15" r="15" />
+      <circle cx="7" cy="45" r="7" />
     </svg>
   );
 }
