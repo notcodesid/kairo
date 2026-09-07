@@ -21,7 +21,9 @@ import { NextResponse } from "next/server";
  * fresh prover slot + daily-budget unit per attempt.
  */
 
-export const maxDuration = 600;
+// Hobby cap is 60s — higher values fail the deploy at "Deploying outputs".
+// Proofs slower than this get cut; Pro plan allows up to 600.
+export const maxDuration = 60;
 
 const RELAY_BASE =
   process.env.STARKSCAN_RELAY_BASE || "https://api.starkscan.co/v1/SN_MAIN/prove";
