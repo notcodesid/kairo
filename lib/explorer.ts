@@ -12,7 +12,8 @@ export function addressUrl(
 }
 
 function voyagerHost(network: "mainnet" | "sepolia"): string {
-  return network === "sepolia"
-    ? "https://sepolia.voyager.online"
-    : "https://voyager.online";
+  if (network === "sepolia") {
+    return process.env.NEXT_PUBLIC_EXPLORER_SEPOLIA || "https://sepolia.voyager.online";
+  }
+  return process.env.NEXT_PUBLIC_EXPLORER_MAINNET || "https://voyager.online";
 }

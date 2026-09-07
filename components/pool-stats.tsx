@@ -7,6 +7,7 @@ import {
   Check,
 } from "@/components/icons";
 import { POOL_ADDRESS, POOL_FEE_STRK } from "@/lib/chain";
+import { addressUrl } from "@/lib/explorer";
 import { truncateAddress } from "@/lib/format";
 
 interface PoolStatsProps {
@@ -71,7 +72,7 @@ export function PoolStats({
             STRK20 Pool Specs
           </span>
           <a
-            href={`https://voyager.online/contract/${POOL_ADDRESS}`}
+            href={addressUrl(POOL_ADDRESS, "mainnet")}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-[11px] font-semibold text-fg hover:opacity-75 transition-opacity"

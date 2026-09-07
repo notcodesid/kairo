@@ -23,7 +23,8 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 600;
 
-const RELAY_BASE = "https://api.starkscan.co/v1/SN_MAIN/prove";
+const RELAY_BASE =
+  process.env.STARKSCAN_RELAY_BASE || "https://api.starkscan.co/v1/SN_MAIN/prove";
 const POLL_DEFAULT_S = 10;
 const OVERALL_TIMEOUT_MS = 10 * 60_000;
 /** Deposit attestations expire 300s after issued_at — warn below this margin. */
