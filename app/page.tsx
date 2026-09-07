@@ -130,13 +130,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<NavTab>("shield");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [demo, setDemo] = useState<DemoMode>(getInitialDemo);
-  const [route, setRoute] = useState<KeyRoute>("wallet");
+  const [route, setRoute] = useState<KeyRoute>("sdk");
 
   const sdk = useSdkStore();
-
-  useEffect(() => {
-    setDemo(getInitialDemo());
-  }, []);
 
   const now = useSyncExternalStore(subscribeTime, getNow, getServerNow);
 

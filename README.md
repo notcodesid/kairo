@@ -65,19 +65,20 @@ export live in the SDK setup card.
 ### Why the wallet route still matters on mainnet
 
 The standalone SDK route needs a hosted proving service. On **Sepolia** it's
-public (`transaction-prover.alpha-sepolia.sw-dev.io`); on **mainnet it is
-unpublished** (hackathon issue #124, open). So today every mainnet entry goes
+public (`transaction-prover.alpha-sepolia.sw-dev.io`); on **mainnet it runs
+through the Starkscan async relay** (`/api/prove-relay`, authenticated +
+allowlisted Key ID). So today every mainnet entry goes
 through a wallet — Ready is currently the only one with the STRK20 dapp API,
 and its proofs + AVNU submission are what the [`strk20.json`](./strk20.json)
-hashes verify. The day StarkWare publishes the URL, mainnet SDK lights up via
-one env var (`NEXT_PUBLIC_PROVING_URL_MAINNET`) with zero code changes.
+hashes verify. With the relay configured, mainnet SDK lights up via
+one env var (`NEXT_PUBLIC_PROVING_URL_MAINNET=/api/prove-relay`) with zero code changes.
 
 ### Env vars (all optional)
 
 | Var | Purpose | Default |
 |---|---|---|
 | `PAYMASTER_API_KEY` (server-only) | Sponsored SDK submits via AVNU. Unset → self-pay fallback, wallet route unaffected. | unset |
-| `NEXT_PUBLIC_PROVING_URL_MAINNET` | Mainnet SDK proving service, when published. | unset (Sepolia prover is public) |
+| `NEXT_PUBLIC_PROVING_URL_MAINNET` | Mainnet SDK proving relay (`/api/prove-relay` backed by `STARKSCAN_API_KEY`). | unset (Sepolia prover is public) |
 
 No env vars needed for the wallet route or the Sepolia SDK demo:
 `npm i && npm run dev` just works.

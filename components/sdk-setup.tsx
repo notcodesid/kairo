@@ -145,7 +145,6 @@ export function SdkSetupCard() {
     hasStoredKey,
     privateKey,
     viewingKey,
-    setNetwork,
     generate,
     importKey,
     unlock,
@@ -216,33 +215,17 @@ export function SdkSetupCard() {
             Kairo generates the viewing key and registers it itself
           </p>
         </div>
-        {/* Network toggle */}
-        <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border">
-          {(["sepolia", "mainnet"] as SdkNetwork[]).map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setNetwork(n)}
-              disabled={busy !== undefined}
-              className={`rounded-full px-3 py-1 text-[12px] font-medium capitalize transition-all disabled:opacity-40 ${
-                network === n
-                  ? "bg-black text-white font-semibold ring-1 ring-black shadow-sm"
-                  : "text-muted hover:text-fg"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
+        {/* Mainnet-only: Sepolia kept in code paths for dev, hidden from UI */}
+        <div className="flex items-center gap-1 rounded-full bg-surface-2 px-3 py-1 text-[12px] font-semibold capitalize ring-1 ring-border">
+          mainnet
         </div>
       </div>
 
       {mainnetBlocked && (
         <div className="mt-4 rounded-2xl border border-black/15 bg-surface-2 p-4 text-[12px] leading-relaxed text-fg">
-          Mainnet SDK sends need a proving service URL, which StarkWare
-          hasn&apos;t published yet. Discovery and key setup read live data, but
-          proving stays on Sepolia until then — set{" "}
-          <span className="font-mono font-semibold">NEXT_PUBLIC_PROVING_URL_MAINNET</span> to
-          unlock it with zero code changes.
+          Mainnet SDK proving runs through the Starkscan relay
+          (authenticated, allowlisted). Discovery and key setup read live
+          data — if proving is blocked, the Key ID isn&apos;t whitelisted yet.
         </div>
       )}
 
@@ -290,7 +273,8 @@ export function SdkSetupCard() {
         <div className="mt-5 space-y-3">
           <p className="text-[13px] leading-relaxed text-muted">
             No embedded key on {network} yet. Generate a fresh throwaway (fund
-            it from a faucet), or import an existing test key. It&apos;s
+            it with {network === "sepolia" ? "Sepolia STRK from a faucet" : "STRK"}),
+            or import an existing test key. It&apos;s
             encrypted with a password before anything touches storage.
             Throwaway keys only — never use real funds here.
           </p>
@@ -424,17 +408,22 @@ export function SdkSetupCard() {
 
           {(publicStrk ?? 0) === 0 && (
             <div className="rounded-2xl bg-surface-2 p-4 text-[12px] leading-relaxed text-muted ring-1 ring-border">
-              Fund this address first —{" "}
-              <a
-                href="https://faucet.starknet.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-fg font-semibold underline hover:opacity-80"
-              >
-                faucet.starknet.io
-              </a>{" "}
-              for Sepolia STRK. Registration and shielding both need a funded,
-              deployed account.
+              Fund this address with STRK first. Registration and shielding
+              both need a funded, deployed account.
+              {network === "sepolia" && (
+                <>
+                  {" "}
+                  <a
+                    href="https://faucet.starknet.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-fg font-semibold underline hover:opacity-80"
+                  >
+                    faucet.starknet.io
+                  </a>{" "}
+                  for Sepolia STRK.
+                </>
+              )}
             </div>
           )}
 

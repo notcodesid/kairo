@@ -9,8 +9,9 @@
  * straight from the pool contract over ordinary RPC — works on mainnet
  * today. Proving still needs a hosted proving service:
  *   Sepolia: public (transaction-prover.alpha-sepolia.sw-dev.io)
- *   Mainnet: unpublished (hackathon issue #124 open) → env-wired, throws a
- *            helpful error until StarkWare publishes it or we self-host.
+ *   Mainnet: Starkscan async relay via /api/prove-relay (authenticated,
+ *            allowlisted Key ID) — set NEXT_PUBLIC_PROVING_URL_MAINNET to
+ *            the relay URL; throws a helpful error until it is configured.
  */
 
 import {
@@ -55,7 +56,7 @@ export interface SdkConfig {
   poolAddress: string;
   chainId: string;
   rpcUrl: string;
-  /** Undefined on mainnet until StarkWare publishes the URL. */
+  /** Undefined on mainnet until the Starkscan relay URL is configured. */
   proverUrl: string | undefined;
 }
 
@@ -282,7 +283,7 @@ export interface SdkTransfersArgs {
 /**
  * Build the SDK's PrivateTransfers client: app-held viewing key, hosted
  * proving service, contract-based discovery over RPC. Throws on mainnet
- * until a proving URL is configured — callers should surface this as
+ * until the relay URL is configured — callers should surface this as
  * "SDK sends unavailable on mainnet yet" rather than a generic failure.
  */
 export function createSdkTransfers({
@@ -294,8 +295,8 @@ export function createSdkTransfers({
   const cfg = sdkConfigFor(network);
   if (!cfg.proverUrl) {
     throw new Error(
-      "SDK proving is unavailable on mainnet: no proving service URL is published yet " +
-        "(hackathon issue #124). Set NEXT_PUBLIC_PROVING_URL_MAINNET once StarkWare publishes it, " +
+      "SDK proving is unavailable on mainnet: no proving relay URL is configured. " +
+        "Set NEXT_PUBLIC_PROVING_URL_MAINNET to /api/prove-relay (Starkscan allowlisted relay), " +
         "or use Sepolia where the proving service is public.",
     );
   }
@@ -307,6 +308,10 @@ export function createSdkTransfers({
     provingProvider: {
       url: cfg.proverUrl,
       chainId: cfg.chainId as never,
+      // Async relay holds the HTTP open for minutes per proof — the 30s
+      // default would abort every real mainnet proof and each retry would
+      // burn a fresh prover slot. Match the relay's overall timeout.
+      requestTimeoutMs: 600_000,
       // Transient `-32005` busy responses back off instead of failing the tx.
       retry: { maxRetries: 5, baseDelayMs: 1000 },
     },

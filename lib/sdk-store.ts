@@ -3,8 +3,8 @@
 /**
  * SDK wallet store — the app-held-key account (RFP-literal route).
  *
- * Holds an embedded throwaway key (Sepolia-first; mainnet lights up once a
- * proving URL is configured), derives the viewing key canonically, and drives
+ * Holds an embedded throwaway key (mainnet via Starkscan relay; Sepolia kept
+ * in code paths for dev but hidden from the UI), derives the viewing key canonically, and drives
  * every privacy op through lib/sdk.ts — the app generates the key, registers
  * it, runs discovery, and builds proofs itself. No browser wallet involved.
  *
@@ -237,7 +237,7 @@ function lockState(hasStoredKey: boolean): Partial<SdkWalletState> {
 }
 
 export const useSdkStore = create<SdkWalletState>((set, get) => ({
-  network: "sepolia",
+  network: "mainnet",
   status: "idle",
   registered: false,
   deployed: false,
