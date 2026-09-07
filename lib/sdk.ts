@@ -39,8 +39,9 @@ import { feltToAmount } from "@/lib/format";
 
 export type SdkNetwork = "mainnet" | "sepolia";
 
-/** Public Sepolia proving service — the only published proving URL. */
+/** Public Sepolia proving service — override via env if it ever moves. */
 export const SEPOLIA_PROVER_URL =
+  process.env.NEXT_PUBLIC_PROVING_URL_SEPOLIA ||
   "https://transaction-prover.alpha-sepolia.sw-dev.io";
 
 /** Mainnet proving service — unpublished. Override via env when available. */
@@ -236,9 +237,13 @@ async function estimateGas(
 ): Promise<bigint | undefined> {
   try {
     const sim = await stage().simulate({ node: rpc });
+    // skipValidate: fresh/undeployed accounts fail __validate__ during the
+    // pre-check — this estimate only sizes the balance guard, execution
+    // re-estimates with validation on the submit path.
     const est = await account.estimateInvokeFee(sim.callAndProof.call, {
       proofFacts: sim.callAndProof.proof.proofFacts,
       proof: sim.callAndProof.proof.data,
+      skipValidate: true,
     });
     const overall = BigInt(
       (est as { overall_fee?: bigint | string | number }).overall_fee ?? 0,
