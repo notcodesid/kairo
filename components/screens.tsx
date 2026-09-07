@@ -467,10 +467,11 @@ export function DashboardTab({
 
 /* -------------------------------------------------------------- Shield Tab */
 
+// STRK-only: every submit path (wallet + SDK, fee included) is hardcoded to
+// STRK.address, so offering other tokens would label a STRK movement as USDC.
+// Reintroduce options only with real per-token discovery + execution.
 const AVAILABLE_TOKENS = [
   { symbol: "STRK", name: "Starknet Token", rate: 0.42 },
-  { symbol: "USDC", name: "USD Coin", rate: 1.0 },
-  { symbol: "ETH", name: "Ethereum", rate: 2500 },
 ];
 
 export function TokenSelectModal({
