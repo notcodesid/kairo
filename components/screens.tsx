@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   ArrowUpRight,
   ArrowDownLeft,
-  ArrowLeftRight,
 } from "@/components/icons";
 import { txUrl } from "@/lib/explorer";
 import { formatAmount, splitAmount, truncateAddress } from "@/lib/format";
@@ -384,14 +383,7 @@ export function DashboardTab({
             <ArrowUpRight size={15} />
             <span>Private Send</span>
           </button>
-          <button
-            type="button"
-            onClick={() => onNavigate("swap")}
-            className="flex items-center justify-center gap-2 rounded-xl bg-surface-2 px-4 py-3 text-[13px] font-semibold text-fg ring-1 ring-border transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
-          >
-            <ArrowLeftRight size={15} />
-            <span>Private Swap</span>
-          </button>
+          {/* Private Swap hidden: no swap execution exists yet (see NAV_TABS). */}
           <button
             type="button"
             onClick={() => onNavigate("unshield")}
