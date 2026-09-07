@@ -77,51 +77,164 @@ export function DoneModal({
     try {
       await navigator.clipboard?.writeText(txHash);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1400);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
       /* clipboard unavailable */
     }
   }
 
+  // Celebratory micro-burst particles
+  const particles = [
+    { x: -40, y: -30, r: 3, delay: 0.18 },
+    { x: 42, y: -26, r: 3.5, delay: 0.22 },
+    { x: -46, y: 16, r: 2.5, delay: 0.2 },
+    { x: 46, y: 18, r: 3, delay: 0.26 },
+    { x: -18, y: -44, r: 2, delay: 0.15 },
+    { x: 22, y: -42, r: 2.5, delay: 0.28 },
+  ];
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      initial={{ opacity: 0, scale: 0.95, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      className="flex flex-col items-center justify-center gap-6 py-10 text-center"
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col items-center justify-center gap-6 py-8 text-center"
     >
-      <span className="flex size-18 items-center justify-center rounded-3xl bg-black text-white ring-1 ring-black shadow-md">
-        <Check size={32} />
-      </span>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight text-fg">{title}</h2>
-        <p className="max-w-md text-[14px] leading-relaxed text-muted">{detail}</p>
+      {/* Animated Success Icon with Concentric Ripples & Burst */}
+      <div className="relative flex items-center justify-center">
+        {/* Expanding ripple ring 1 */}
+        <motion.span
+          initial={{ scale: 0.7, opacity: 0.75 }}
+          animate={{ scale: 1.75, opacity: 0 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.1 }}
+          className="absolute size-20 rounded-full border border-fg/25"
+        />
+
+        {/* Expanding ripple ring 2 */}
+        <motion.span
+          initial={{ scale: 0.7, opacity: 0.5 }}
+          animate={{ scale: 2.2, opacity: 0 }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut", delay: 0.4 }}
+          className="absolute size-20 rounded-full border border-fg/15"
+        />
+
+        {/* Burst particles */}
+        {particles.map((p, i) => (
+          <motion.span
+            key={i}
+            initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
+            animate={{
+              scale: [0, 1.2, 0],
+              x: p.x,
+              y: p.y,
+              opacity: [0, 0.85, 0],
+            }}
+            transition={{
+              duration: 0.85,
+              ease: [0.16, 1, 0.3, 1],
+              delay: p.delay,
+            }}
+            style={{ width: p.r * 2, height: p.r * 2 }}
+            className="absolute rounded-full bg-fg"
+          />
+        ))}
+
+        {/* Main Spring Badge */}
+        <motion.div
+          initial={{ scale: 0, rotate: -25 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{
+            type: "spring",
+            stiffness: 420,
+            damping: 22,
+            delay: 0.06,
+          }}
+          className="relative z-10 flex size-20 items-center justify-center rounded-3xl bg-fg text-bg shadow-[0_12px_28px_rgba(0,0,0,0.18)] ring-1 ring-border"
+        >
+          <svg
+            width="34"
+            height="34"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="text-bg"
+          >
+            <motion.path
+              d="M5 13l4.5 4.5L19 7.5"
+              stroke="currentColor"
+              strokeWidth="2.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{
+                duration: 0.42,
+                ease: [0.16, 1, 0.3, 1],
+                delay: 0.22,
+              }}
+            />
+          </svg>
+        </motion.div>
       </div>
 
+      {/* Header Info */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="space-y-2 max-w-md mx-auto"
+      >
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[11px] font-semibold text-fg ring-1 ring-border">
+          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Confirmed on Starknet</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-fg">{title}</h2>
+        <p className="text-[14px] leading-relaxed text-muted">{detail}</p>
+      </motion.div>
+
+      {/* Transaction Receipt Box */}
       {txHash && (
-        <div className="flex items-center gap-2 rounded-2xl bg-surface-2 p-1.5 ring-1 ring-border">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-surface-2 p-1.5 ring-1 ring-border"
+        >
           <button
             type="button"
             onClick={copyHash}
-            className="flex h-9 items-center gap-2 rounded-xl bg-surface px-3 font-mono text-[12px] text-fg ring-1 ring-border transition-colors hover:bg-surface-2"
+            className="flex h-9 items-center gap-2 rounded-xl bg-surface px-3 font-mono text-[12px] font-medium text-fg ring-1 ring-border transition-all hover:bg-surface-2 active:scale-98 cursor-pointer"
+            title="Copy transaction hash"
           >
-            {truncateAddress(txHash, 10, 8)}
-            {copied ? <Check size={13} className="text-fg font-bold" /> : <Copy size={13} />}
+            <span>{truncateAddress(txHash, 10, 8)}</span>
+            {copied ? (
+              <span className="flex items-center gap-1 text-fg font-bold text-[11px]">
+                <Check size={13} className="text-fg" /> Copied
+              </span>
+            ) : (
+              <Copy size={13} className="text-muted" />
+            )}
           </button>
           <a
             href={txUrl(txHash)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[12px] font-medium text-fg hover:underline"
+            className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-[12px] font-semibold text-fg transition-colors hover:bg-surface hover:underline"
           >
-            Voyager <ExternalLink size={12} />
+            <span>Voyager</span>
+            <ExternalLink size={12} className="text-muted" />
           </a>
-        </div>
+        </motion.div>
       )}
 
-      <div className="w-full max-w-xs pt-2">
+      {/* Return Action Button */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-xs pt-1"
+      >
         <PrimaryButton onClick={onDone}>Return to App</PrimaryButton>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
