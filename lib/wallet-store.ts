@@ -410,6 +410,28 @@ export async function reconnectWallet(): Promise<void> {
 }
 
 /**
+ * Poll refresh() while connected and the tab is visible. One refresh is ~1
+ * RPC call (public balance) plus the wallet's own balance probe — far below
+ * public endpoint limits at the default 10s cadence. Skips while a refresh
+ * is already in flight. Returns cleanup for useEffect.
+ */
+let walletRefreshInFlight = false;
+
+export function startWalletPolling(intervalMs = 10_000): () => void {
+  const id = setInterval(() => {
+    if (document.hidden) return;
+    const s = useWalletStore.getState();
+    if (s.status !== "connected" || !s.address) return;
+    if (walletRefreshInFlight) return;
+    walletRefreshInFlight = true;
+    void s.refresh().finally(() => {
+      walletRefreshInFlight = false;
+    });
+  }, intervalMs);
+  return () => clearInterval(id);
+}
+
+/**
  * Start wallet-standard discovery once on the client. Wallets register
  * asynchronously after page load, so we subscribe rather than read once.
  * Returns an unsubscribe cleanup for useEffect. Idempotent under Strict Mode:

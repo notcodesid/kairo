@@ -9,6 +9,7 @@ import { relativeTime } from "@/lib/format";
 import {
   startWalletDiscovery,
   reconnectWallet,
+  startWalletPolling,
   useWalletStore,
 } from "@/lib/wallet-store";
 import { initSdkStore, startSdkPolling, useSdkStore } from "@/lib/sdk-store";
@@ -242,6 +243,13 @@ export default function Home() {
     if (!(sdkMode && sdkReady && sdk.registered)) return;
     return startSdkPolling();
   }, [sdkMode, sdkReady, sdk.registered]);
+
+  // Live balances for the wallet route: refresh every 10s while connected so
+  // shield / send / swap / unshield show up without a manual reload.
+  useEffect(() => {
+    if (status !== "connected") return;
+    return startWalletPolling();
+  }, [status]);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-fg relative overflow-x-clip">
