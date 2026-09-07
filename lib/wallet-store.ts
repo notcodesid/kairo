@@ -187,6 +187,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         strk20: "unknown",
         history: loadHistory(address),
       });
+      // Remember for silent reconnect on reload (cleared on manual disconnect).
+      try {
+        localStorage.setItem("kairo:last-wallet", wallet.name);
+      } catch {
+        /* storage unavailable */
+      }
 
       // Public balance via plain RPC (no wallet prompt).
       fetchPublicStrk(address, chainId)
@@ -333,6 +339,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   disconnect: () => {
     unsubscribeWalletEvents?.();
     unsubscribeWalletEvents = undefined;
+    try {
+      localStorage.removeItem("kairo:last-wallet");
+    } catch {
+      /* storage unavailable */
+    }
     set({
       status: "idle",
       account: undefined,
@@ -352,6 +363,51 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
 /** Unsubscribe from the connected wallet's change events, if any. */
 let unsubscribeWalletEvents: (() => void) | undefined;
+
+/**
+ * Silent reconnect on page load. Only fires when the dapp is still authorized
+ * (ACCOUNTS permission already granted — a read, never a popup), so a reload
+ * never surprises the user with a wallet prompt. Anything else — unknown
+ * wallet, revoked permission, rejection — stays quietly disconnected.
+ */
+export async function reconnectWallet(): Promise<void> {
+  let lastName: string | null = null;
+  try {
+    lastName = localStorage.getItem("kairo:last-wallet");
+  } catch {
+    return;
+  }
+  if (!lastName) return;
+  // Discovery populates asynchronously — wait briefly for wallets to register.
+  const deadline = Date.now() + 4000;
+  let wallet;
+  while (Date.now() < deadline) {
+    wallet = useWalletStore
+      .getState()
+      .wallets.find((w) => w.name === lastName);
+    if (wallet) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  if (!wallet) return;
+  try {
+    const permissions = await walletV6.getPermissions(wallet);
+    if (!permissions.includes(WALLET_API.Permission.ACCOUNTS)) return;
+  } catch {
+    return;
+  }
+  try {
+    await useWalletStore.getState().connect(wallet);
+  } catch {
+    /* connect already records its own error — silence it for auto-reconnect */
+  } finally {
+    const s = useWalletStore.getState();
+    if (s.status !== "connected") {
+      // Back to idle WITHOUT clearing kairo:last-wallet (unlike manual
+      // disconnect) so the next reload retries.
+      useWalletStore.setState({ status: "idle", error: undefined });
+    }
+  }
+}
 
 /**
  * Start wallet-standard discovery once on the client. Wallets register

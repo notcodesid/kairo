@@ -8,6 +8,7 @@ import { MOCK_WALLET, type ActivityItem } from "@/lib/mock";
 import { relativeTime } from "@/lib/format";
 import {
   startWalletDiscovery,
+  reconnectWallet,
   useWalletStore,
 } from "@/lib/wallet-store";
 import { initSdkStore, startSdkPolling, useSdkStore } from "@/lib/sdk-store";
@@ -143,7 +144,9 @@ export default function Home() {
   const now = useSyncExternalStore(subscribeTime, getNow, getServerNow);
 
   useEffect(() => {
-    return startWalletDiscovery();
+    const stopDiscovery = startWalletDiscovery();
+    void reconnectWallet();
+    return stopDiscovery;
   }, []);
 
   useEffect(() => {
