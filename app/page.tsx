@@ -21,7 +21,6 @@ import {
   DashboardTab,
   ShieldTab,
   TransferTab,
-  SwapTab,
   UnshieldTab,
   ReceiveTab,
   ActivityTab,
@@ -66,7 +65,8 @@ function getServerNow() {
 const NAV_TABS = [
   { id: "shield", label: "Shield" },
   { id: "transfer", label: "Private Send" },
-  { id: "swap", label: "Private Swap" },
+  // Swap hidden: no onSwap wired — the tab fakes success after 1.4s with no
+  // chain interaction. Restore only with a real AVNU/pool swap path.
   { id: "unshield", label: "Unshield" },
 ] as const;
 
@@ -399,7 +399,7 @@ export default function Home() {
           <p className="mt-4 text-[14px] sm:text-[15px] leading-relaxed text-muted max-w-xl mx-auto">
             {activeTab === "dashboard"
               ? "Zero-knowledge shielded assets and real-time Starknet privacy pool status."
-              : "Shield, swap, and transfer assets on Starknet with zero trace."}
+              : "Shield and transfer assets on Starknet with zero trace."}
           </p>
         </div>
 
@@ -474,16 +474,7 @@ export default function Home() {
             />
           )}
 
-          {activeTab === "swap" && (
-            <SwapTab
-              spendable={shielded}
-              token={token}
-              feeStrk={sdkMode ? sdk.feeStrk : 0}
-              connected={isConnected}
-              onConnect={() => setWalletModalOpen(true)}
-            />
-          )}
-
+          {/* Swap hidden until a real execution path exists (see NAV_TABS). */}
           {activeTab === "unshield" && (
             <UnshieldTab
               shieldedBalance={shielded}
