@@ -128,16 +128,24 @@ export function StatusNotice({
     text = `${walletName ?? "This wallet"} does not support STRK20 private balances yet. Please use Ready wallet.`;
   }
 
+  if (tone === "info") {
+    return (
+      <div
+        role="status"
+        className="mx-auto flex w-fit items-center gap-2.5 rounded-full border border-border bg-surface/90 px-4 py-1.5 text-[12px] font-medium text-muted shadow-sm backdrop-blur-md transition-all"
+      >
+        <Spinner size={14} className="shrink-0 text-fg" />
+        <span className="text-fg">{text}</span>
+      </div>
+    );
+  }
+
   return (
     <div
       role="status"
-      className="flex items-center gap-3 rounded-2xl border border-black/15 bg-surface-2 p-4 text-[13px] leading-relaxed text-fg shadow-sm"
+      className="mx-auto flex max-w-xl items-center gap-3 rounded-2xl border border-border bg-surface-2 p-4 text-[13px] leading-relaxed text-fg shadow-sm"
     >
-      {tone === "info" ? (
-        <Spinner size={16} className="shrink-0 text-fg" />
-      ) : (
-        <span className="size-2 rounded-full bg-black shrink-0" />
-      )}
+      <span className="size-2 rounded-full bg-fg shrink-0" />
       <span>{text}</span>
     </div>
   );

@@ -193,22 +193,6 @@ export function Navbar({
               </svg>
             )}
           </motion.button>
-                            title={
-                    m.id === "wallet"
-                      ? "Ready wallet holds the viewing key"
-                      : "Kairo holds the key itself (Sepolia)"
-                  }
-                  className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-all focus-visible:outline-none ${
-                    mode === m.id
-                      ? "strk-pill-active font-semibold text-white shadow-sm"
-                      : "text-muted hover:text-fg"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          )}
           {connected && address ? (
             <div className="relative" ref={dropdownRef}>
               <motion.button

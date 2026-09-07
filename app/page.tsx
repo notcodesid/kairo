@@ -355,15 +355,24 @@ export default function Home() {
         )}
 
         {/* Real wallet notice if not on mainnet */}
-        {real && isConnected && (!isMainnet || strk20 !== "supported") && !showSetup && (
-          <div className="mb-6">
-            <StatusNotice
-              isMainnet={isMainnet}
-              strk20={strk20}
-              walletName={walletName}
-            />
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {real && isConnected && (!isMainnet || strk20 !== "supported") && !showSetup && (
+            <motion.div
+              key="wallet-status"
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="mb-6 flex justify-center"
+            >
+              <StatusNotice
+                isMainnet={isMainnet}
+                strk20={strk20}
+                walletName={walletName}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Hero Heading and Subtitle */}
         <div className="mx-auto max-w-2xl text-center pt-2 pb-6 sm:pt-6 sm:pb-8">

@@ -215,19 +215,39 @@ export function X(p: IconProps) {
   );
 }
 
-export function Spinner({ size = 20, ...p }: IconProps) {
+export function Spinner({ size = 20, className = "", ...p }: IconProps) {
+  const count = 8;
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill="currentColor"
       aria-hidden="true"
-      className="motion-safe:animate-spin"
+      className={"inline-block shrink-0 " + className}
       {...p}
     >
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.5" />
-      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <style>{`
+        @keyframes kairo-spin-fade {
+          0% { opacity: 1; }
+          100% { opacity: 0.15; }
+        }
+      `}</style>
+      {Array.from({ length: count }).map((_, i) => (
+        <rect
+          key={i}
+          x="11"
+          y="2.5"
+          width="2"
+          height="5"
+          rx="1"
+          transform={"rotate(" + (i * 45) + " 12 12)"}
+          style={{
+            animation: "kairo-spin-fade 0.75s linear infinite",
+            animationDelay: (-0.75 + (i * 0.75) / count) + "s",
+          }}
+        />
+      ))}
     </svg>
   );
 }

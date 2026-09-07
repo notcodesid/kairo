@@ -259,3 +259,12 @@
   letter-spacing: 0.01em;
 }
 
+
+@keyframes kairo-spin-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
