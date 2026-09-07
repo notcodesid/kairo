@@ -53,6 +53,62 @@ export function rpcFor(chainId?: string): RpcProvider {
   return networkFor(chainId) === "sepolia" ? sepoliaProvider : provider;
 }
 
+/** Second mainnet endpoint — first failover when the primary dies mid-flight. */
+export const RPC_URL_FALLBACK_MAINNET =
+  process.env.NEXT_PUBLIC_RPC_URL_MAINNET_FALLBACK ||
+  "https://mainnet.nodes.starknet.org/rpc/v0_10";
+
+/** Fresh providers per call — never a stale singleton baked at import time. */
+function providersFor(network: "mainnet" | "sepolia"): RpcProvider[] {
+  if (network === "sepolia") return [sepoliaProvider];
+  const urls = [RPC_URL, RPC_URL_FALLBACK_MAINNET].filter(
+    (u, i, a) => u && a.indexOf(u) === i,
+  );
+  return urls.map(
+    (nodeUrl) => new RpcProvider({ nodeUrl, specVersion: RPC_SPEC_MAINNET }),
+  );
+}
+
+/**
+ * Prod-safe confirmation wait: fresh providers (immune to stale singletons),
+ * automatic failover across mainnet RPCs, and a hard timeout so the UI can
+ * never hang on "Shielding Funds…" forever. Definitive rejections rethrow
+ * immediately without burning the fallback. Timeout message is funds-safe:
+ * the transaction may still confirm — check the explorer before retrying.
+ */
+export async function waitForTx(
+  txHash: string,
+  network: "mainnet" | "sepolia" = "mainnet",
+  timeoutMs = 5 * 60_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let lastErr: unknown = new Error("no RPC provider available");
+  for (const rpc of providersFor(network)) {
+    try {
+      await Promise.race([
+        rpc.waitForTransaction(txHash, { retryInterval: 2500 }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("confirmation timeout")),
+            Math.max(deadline - Date.now(), 1000),
+          ),
+        ),
+      ]);
+      return;
+    } catch (e) {
+      lastErr = e;
+      // Definitive chain verdict — no point trying the next RPC.
+      // (Narrow: "failed to fetch" and friends must still fail over.)
+      if (/reject|revert/i.test(String((e as Error)?.message ?? e))) throw e;
+      if (Date.now() >= deadline) break;
+      // Transport/RPC failure — fall through to the next provider.
+    }
+  }
+  throw new Error(
+    `Transaction ${txHash} isn't confirming — it may still land, so check the explorer before retrying. (${String((lastErr as Error)?.message ?? lastErr).slice(0, 160)})`,
+  );
+}
+
 /**
  * Protocol fee per pool action on mainnet, in STRK (pool `get_fee_amount`,
  * confirmed in hackathon issue #156 — docs previously said 4).

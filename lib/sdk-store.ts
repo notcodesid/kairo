@@ -45,7 +45,7 @@ import {
 } from "@/lib/keystore";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 import { logEvent } from "@/lib/diagnostics";
-import { RPC_SPEC_MAINNET, STRK } from "@/lib/chain";
+import { RPC_SPEC_MAINNET, STRK, waitForTx } from "@/lib/chain";
 
 export interface SdkActivity {
   kind: "shield" | "unshield" | "sent";
@@ -517,8 +517,7 @@ export const useSdkStore = create<SdkWalletState>((set, get) => ({
           },
         },
       });
-      const cfg = sdkConfigFor(network);
-      await new RpcProvider({ nodeUrl: cfg.rpcUrl }).waitForTransaction(txHash);
+      await waitForTx(txHash, network);
       console.info("[sdk] sponsored send tx:", txHash);
       logEvent({ route: "sdk", action: "sdk:send", stage: "sponsored", ok: true, network });
       set({

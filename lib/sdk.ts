@@ -33,6 +33,7 @@ import {
   SEPOLIA_RPC_URL,
   RPC_URL,
   STRK,
+  waitForTx,
 } from "@/lib/chain";
 import { deriveViewingKey } from "@/lib/viewing-key";
 import { feltToAmount } from "@/lib/format";
@@ -389,7 +390,7 @@ export async function generateAndRegisterViewingKey(args: {
     proofFacts: proof?.proofFacts?.length ? proof.proofFacts : undefined,
     proof: proof?.proofFacts?.length ? proof.data : undefined,
   });
-  await rpc.waitForTransaction(tx.transaction_hash);
+  await waitForTx(tx.transaction_hash, network);
   return { viewingKey, txHash: tx.transaction_hash };
 }
 
@@ -441,9 +442,9 @@ export async function discoverSdkNotes(args: {
 
 async function submitCallAndProof(
   account: Account,
-  rpc: ProviderInterface,
   callAndProof: { call: Parameters<Account["execute"]>[0]; proof: { proofFacts: string[]; data: string } },
   label: string,
+  network: SdkNetwork,
 ): Promise<string> {
   const proof = callAndProof.proof;
   const hasProof = (proof?.proofFacts?.length ?? 0) > 0;
@@ -453,7 +454,8 @@ async function submitCallAndProof(
       : {}),
   });
   console.info(`[sdk] ${label} tx:`, tx.transaction_hash);
-  await rpc.waitForTransaction(tx.transaction_hash);
+  // Resilient wait: failover + timeout, never hangs the UI on a dead RPC.
+  await waitForTx(tx.transaction_hash, network);
   return tx.transaction_hash;
 }
 
@@ -476,6 +478,7 @@ async function ensureAllowance(
   rpc: ProviderInterface,
   poolAddress: string,
   needed: bigint,
+  network: SdkNetwork,
 ) {
   const res = await rpc.callContract({
     contractAddress: STRK.address,
@@ -489,7 +492,7 @@ async function ensureAllowance(
     entrypoint: "approve",
     calldata: [poolAddress, (needed * 2n).toString(), "0"],
   });
-  await rpc.waitForTransaction(ap.transaction_hash);
+  await waitForTx(ap.transaction_hash, network);
 }
 
 /** Shield (deposit) via the SDK. Returns tx hash. */
@@ -507,7 +510,7 @@ export async function sdkShield(args: {
     args.provider ?? new RpcProvider({ nodeUrl: cfg.rpcUrl });
   const token = args.token ?? STRK.address;
   const fee = await poolFeeUnits(rpc, cfg.poolAddress);
-  await ensureAllowance(account, rpc, cfg.poolAddress, amount + fee * 5n);
+  await ensureAllowance(account, rpc, cfg.poolAddress, amount + fee * 5n, network);
   const transfers = createSdkTransfers({
     account,
     viewingKey,
@@ -523,7 +526,7 @@ export async function sdkShield(args: {
   // Simulate first: fail before submission when gas exceeds the balance.
   await assertCoversGas(account, rpc, network, await estimateGas(account, rpc, stageIt));
   const { callAndProof } = await stageIt().execute({ provingBlockId: block });
-  return submitCallAndProof(account, rpc, callAndProof, "shield");
+  return submitCallAndProof(account, callAndProof, "shield", network);
 }
 
 /** Private transfer via the SDK (self-submitted). Returns tx hash. */
@@ -542,7 +545,7 @@ export async function sdkSendPrivate(args: {
     args.provider ?? new RpcProvider({ nodeUrl: cfg.rpcUrl });
   const { callAndProof, estimate } = await sdkBuildPrivateTransfer(args);
   await assertCoversGas(account, rpc, network, await estimate());
-  return submitCallAndProof(account, rpc, callAndProof, "private send");
+  return submitCallAndProof(account, callAndProof, "private send", network);
 }
 
 /**
@@ -608,7 +611,7 @@ export async function sdkBuildPrivateTransfer(args: {
   const block = await waitUntilMature(rpc, Number(note.created ?? 0));
   if (!sponsoredFee) {
     const fee = await poolFeeUnits(rpc, cfg.poolAddress);
-    await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
+    await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n, network);
   }
   const stageIt = () =>
     transfers
@@ -654,7 +657,7 @@ export async function sdkUnshield(args: {
   const note = spendable.reduce((a, b) => (a.amount >= b.amount ? a : b));
   const block = await waitUntilMature(rpc, Number(note.created ?? 0));
   const fee = await poolFeeUnits(rpc, cfg.poolAddress);
-  await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n);
+  await ensureAllowance(account, rpc, cfg.poolAddress, fee * 5n, network);
   const stageIt = () =>
     transfers
       .build()
@@ -664,7 +667,7 @@ export async function sdkUnshield(args: {
       );
   await assertCoversGas(account, rpc, network, await estimateGas(account, rpc, stageIt));
   const { callAndProof } = await stageIt().execute({ provingBlockId: block });
-  return submitCallAndProof(account, rpc, callAndProof, "unshield");
+  return submitCallAndProof(account, callAndProof, "unshield", network);
 }
 
 /* ------------------- Embedded account helpers (Sepolia) --------------------- */
@@ -758,9 +761,11 @@ export async function ensureAccountDeployed(args: {
     constructorCalldata: [publicKey],
     addressSalt: publicKey,
   });
-  const receipt = await rpc.waitForTransaction(dep.transaction_hash);
-  const block = (receipt as { block_number?: number }).block_number;
-  return { deployed: true, block };
+  await waitForTx(dep.transaction_hash, network);
+  const receipt = (await rpc
+    .getTransactionReceipt(dep.transaction_hash)
+    .catch(() => undefined)) as { block_number?: number } | undefined;
+  return { deployed: true, block: receipt?.block_number };
 }
 
 /** Pool allowance the embedded account has granted (for fee + deposit flows). */

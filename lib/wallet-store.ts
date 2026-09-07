@@ -10,7 +10,7 @@ import {
 import { WALLET_API } from "@starknet-io/types-js";
 import { createStore, type Store } from "@starknet-io/get-starknet-discovery";
 import type { WalletWithStarknetFeatures } from "@starknet-io/get-starknet-wallet-standard/features";
-import { MAINNET_CHAIN_ID, STRK, canReceivePrivately, networkFor, provider, rpcFor } from "@/lib/chain";
+import { MAINNET_CHAIN_ID, STRK, canReceivePrivately, networkFor, rpcFor, waitForTx } from "@/lib/chain";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 
 export type Strk20Support =
@@ -236,7 +236,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     // User-initiated (form submit). Ready may prompt once per action.
     const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] private send tx:", transaction_hash);
-    await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    await waitForTx(transaction_hash, networkFor(get().chainId));
     const addr = get().address;
     if (addr) {
       set({
@@ -264,7 +264,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     ] as WALLET_API.STRK20_ACTION[];
     const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] shield tx:", transaction_hash);
-    await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    await waitForTx(transaction_hash, networkFor(get().chainId));
     const addr = get().address;
     if (addr) {
       set({
@@ -293,7 +293,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     ] as WALLET_API.STRK20_ACTION[];
     const { transaction_hash } = await invokeStrk20(account, actions);
     console.info("[kairo] unshield tx:", transaction_hash);
-    await provider.waitForTransaction(transaction_hash, { retryInterval: 2500 });
+    await waitForTx(transaction_hash, networkFor(get().chainId));
     const addr = get().address;
     if (addr) {
       set({
