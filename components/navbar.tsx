@@ -60,17 +60,23 @@ export function Navbar({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") return "light";
-    const saved = localStorage.getItem("kairo-theme");
-    if (saved === "dark" || saved === "light") return saved;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Client-only: stored/OS theme doesn't exist during SSR — sync after mount
+  // so the first client render matches the server HTML (no hydration mismatch).
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    const saved = localStorage.getItem("kairo-theme");
+    const next =
+      saved === "dark" || saved === "light"
+        ? saved
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+    document.documentElement.classList.toggle("dark", next === "dark");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only convergence to stored/OS theme
+    setTheme(next);
+  }, []);
 
   function toggleTheme() {
     const next = theme === "light" ? "dark" : "light";
@@ -187,25 +193,7 @@ export function Navbar({
               </svg>
             )}
           </motion.button>
-          {onModeChange && (
-            <div
-              className="hidden items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-border sm:flex"
-              role="tablist"
-              aria-label="Key-holding route"
-            >
-              {(
-                [
-                  { id: "wallet", label: "Wallet" },
-                  { id: "sdk", label: "SDK key" },
-                ] as const
-              ).map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={mode === m.id}
-                  onClick={() => onModeChange(m.id)}
-                  title={
+                            title={
                     m.id === "wallet"
                       ? "Ready wallet holds the viewing key"
                       : "Kairo holds the key itself (Sepolia)"

@@ -129,8 +129,14 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<NavTab>("shield");
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const [demo, setDemo] = useState<DemoMode>(getInitialDemo);
-  const [route] = useState<KeyRoute>("sdk");
+  const [demo, setDemo] = useState<DemoMode>("");
+  // Client-only: the ?demo param doesn't exist during SSR — sync after mount
+  // so the first client render matches the server HTML (no hydration mismatch).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only convergence to SSR value or ?demo param
+    setDemo(getInitialDemo());
+  }, []);
+  const [route, setRoute] = useState<KeyRoute>("wallet");
 
   const sdk = useSdkStore();
 
@@ -247,21 +253,12 @@ export default function Home() {
         isMainnet={sdkMode ? sdk.network === "mainnet" : real ? isMainnet : true}
         shieldedBalance={shielded}
         token={token}
-        onConnectClick={
-          sdkMode
-            ? () => {
-                setActiveTab("shield");
-                document
-                  .getElementById("kairo-app")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }
-            : () => setWalletModalOpen(true)
-        }
+        onConnectClick={() => setWalletModalOpen(true)}
         onDisconnect={sdkMode ? sdk.forget : demo ? () => setDemo("") : disconnect}
         onRefresh={sdkMode ? sdk.refresh : real ? refresh : undefined}
         demo={sdkMode ? "" : demo}
         mode={route}
-        connectLabel={sdkMode ? "Get started" : "Connect wallet"}
+        connectLabel="Get started"
         disconnectLabel={sdkMode ? "Forget SDK key" : "Disconnect Wallet"}
       />
 
