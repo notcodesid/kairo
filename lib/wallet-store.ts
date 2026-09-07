@@ -410,10 +410,11 @@ export async function reconnectWallet(): Promise<void> {
 }
 
 /**
- * Poll refresh() while connected and the tab is visible. One refresh is ~1
- * RPC call (public balance) plus the wallet's own balance probe — far below
- * public endpoint limits at the default 10s cadence. Skips while a refresh
- * is already in flight. Returns cleanup for useEffect.
+ * Poll the PUBLIC balance while connected and the tab is visible. Silent RPC
+ * read — no wallet involved, so no popup. Shielded balance is deliberately
+ * NOT polled: every shielded read goes through the wallet's private-balance
+ * prompt, so it refreshes on connect, after each action, on wallet events,
+ * and on manual Sync — never on a timer (a timer would pop up every tick).
  */
 let walletRefreshInFlight = false;
 
@@ -424,9 +425,17 @@ export function startWalletPolling(intervalMs = 10_000): () => void {
     if (s.status !== "connected" || !s.address) return;
     if (walletRefreshInFlight) return;
     walletRefreshInFlight = true;
-    void s.refresh().finally(() => {
-      walletRefreshInFlight = false;
-    });
+    const { address, chainId } = s;
+    fetchPublicStrk(address, chainId)
+      .then((publicStrk) => {
+        if (useWalletStore.getState().address === address) {
+          useWalletStore.setState({ publicStrk });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        walletRefreshInFlight = false;
+      });
   }, intervalMs);
   return () => clearInterval(id);
 }
