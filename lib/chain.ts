@@ -1,25 +1,46 @@
 import { RpcProvider, constants } from "starknet";
 
-/** Verified mainnet values — see DAY0-CHECK.md. */
-export const RPC_URL = "https://rpc.starknet.lava.build";
+/**
+ * Mainnet RPC — verified proof-capable endpoints:
+ *   default: zan public (spec 0.10.3)
+ *   fallback: https://mainnet.nodes.starknet.org/rpc/v0_10 (spec 0.10.2)
+ * Avoid: Lava keyless (discontinued), Starkscan RPC (read/simulate only —
+ * no addInvokeTransaction), Cartridge mainnet (drops proof/proof_facts on
+ * the estimateFee path → pool reverts EMPTY_PROOF_FACTS).
+ * Override via env (NEXT_PUBLIC_ — used in the browser, baked at build).
+ */
+export const RPC_URL =
+  process.env.NEXT_PUBLIC_RPC_URL_MAINNET ||
+  "https://api.zan.top/public/starknet-mainnet/rpc/v0_10";
+
+/**
+ * Pinned serializer spec so proof fields always survive estimate/submit.
+ * Must be <= what the RPC serves (check starknet_specVersion).
+ */
+export const RPC_SPEC_MAINNET = (process.env.NEXT_PUBLIC_RPC_SPEC_MAINNET ||
+  "0.10.3") as "0.10.3";
 
 /**
  * Keyless Sepolia RPC (verified working; Blast's public Sepolia endpoint is
  * decommissioned — do not use it).
  */
-export const SEPOLIA_RPC_URL = "https://api.cartridge.gg/x/starknet/sepolia";
+export const SEPOLIA_RPC_URL =
+  process.env.NEXT_PUBLIC_RPC_URL_SEPOLIA ||
+  "https://api.cartridge.gg/x/starknet/sepolia";
 
 export const POOL_ADDRESS =
+  process.env.NEXT_PUBLIC_POOL_ADDRESS_MAINNET ||
   "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a";
 
 /** Sepolia pool — for end-to-end testing before mainnet (docs/strk20-sdk-notes.md). */
 export const SEPOLIA_POOL_ADDRESS =
+  process.env.NEXT_PUBLIC_POOL_ADDRESS_SEPOLIA ||
   "0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91";
 
 export const MAINNET_CHAIN_ID = constants.StarknetChainId.SN_MAIN; // 0x534e5f4d41494e
 export const SEPOLIA_CHAIN_ID = constants.StarknetChainId.SN_SEPOLIA;
 
-export const provider = new RpcProvider({ nodeUrl: RPC_URL });
+export const provider = new RpcProvider({ nodeUrl: RPC_URL, specVersion: RPC_SPEC_MAINNET });
 export const sepoliaProvider = new RpcProvider({ nodeUrl: SEPOLIA_RPC_URL });
 
 export function networkFor(

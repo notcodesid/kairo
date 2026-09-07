@@ -45,7 +45,7 @@ import {
 } from "@/lib/keystore";
 import { amountToUnits, feltToAmount } from "@/lib/format";
 import { logEvent } from "@/lib/diagnostics";
-import { STRK } from "@/lib/chain";
+import { RPC_SPEC_MAINNET, STRK } from "@/lib/chain";
 
 export interface SdkActivity {
   kind: "shield" | "unshield" | "sent";
@@ -137,8 +137,14 @@ function accountFor(
   network: SdkNetwork,
 ): Account {
   const cfg = sdkConfigFor(network);
+  // Pin the serializer spec on mainnet: proof/proof_facts must survive the
+  // estimateFee path (older serializers silently drop them →
+  // EMPTY_PROOF_FACTS). Sepolia auto-detects (verified end-to-end).
   return new Account({
-    provider: new RpcProvider({ nodeUrl: cfg.rpcUrl }),
+    provider: new RpcProvider({
+      nodeUrl: cfg.rpcUrl,
+      ...(network === "mainnet" ? { specVersion: RPC_SPEC_MAINNET } : {}),
+    }),
     address,
     signer: privateKey,
     cairoVersion: "1",
