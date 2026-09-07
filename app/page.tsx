@@ -248,7 +248,14 @@ export default function Home() {
         shieldedBalance={shielded}
         token={token}
         onConnectClick={
-          sdkMode ? () => setActiveTab("shield") : () => setWalletModalOpen(true)
+          sdkMode
+            ? () => {
+                setActiveTab("shield");
+                document
+                  .getElementById("kairo-app")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              }
+            : () => setWalletModalOpen(true)
         }
         onDisconnect={sdkMode ? sdk.forget : demo ? () => setDemo("") : disconnect}
         onRefresh={sdkMode ? sdk.refresh : real ? refresh : undefined}
@@ -327,7 +334,7 @@ export default function Home() {
       </div>
 
       {/* Main Container */}
-      <main className="relative z-10 mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="kairo-app" className="relative z-10 mx-auto flex-1 w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
         {/* First time setup banner if unregistered */}
         {showSetup && activeTab !== "shield" && (
