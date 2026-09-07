@@ -10,6 +10,7 @@ import {
   Check,
   ExternalLink,
   RefreshCw,
+  Activity,
 } from "@/components/icons";
 import { truncateAddress } from "@/lib/format";
 import { txUrl } from "@/lib/explorer";
@@ -284,6 +285,19 @@ export function Navbar({
                     </div>
 
                     <div className="space-y-0.5 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectTab?.("dashboard");
+                          setDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Activity size={14} className="text-[#ff6122]" /> Portfolio Overview
+                        </span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={copyAddress}

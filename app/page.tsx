@@ -62,7 +62,6 @@ function getServerNow() {
 }
 
 const NAV_TABS = [
-  { id: "dashboard", label: "Overview" },
   { id: "shield", label: "Shield" },
   { id: "transfer", label: "Private Send" },
   { id: "swap", label: "Private Swap" },
@@ -253,7 +252,7 @@ export default function Home() {
         shieldedBalance={shielded}
         token={token}
         onConnectClick={
-          sdkMode ? () => setActiveTab("dashboard") : () => setWalletModalOpen(true)
+          sdkMode ? () => setActiveTab("shield") : () => setWalletModalOpen(true)
         }
         onDisconnect={sdkMode ? sdk.forget : demo ? () => setDemo("") : disconnect}
         onRefresh={sdkMode ? sdk.refresh : real ? refresh : undefined}
@@ -261,7 +260,7 @@ export default function Home() {
         mode={route}
         onModeChange={(m) => {
           setRoute(m);
-          setActiveTab("dashboard");
+          setActiveTab("shield");
         }}
         connectLabel={sdkMode ? "Get started" : "Connect wallet"}
         disconnectLabel={sdkMode ? "Forget SDK key" : "Disconnect Wallet"}
@@ -269,7 +268,7 @@ export default function Home() {
 
       {/* Ambient Decorative Objects (Acctual-style desktop frame) */}
       {/* Top-Right: Peeking MacBook (~10% visible) */}
-      <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block dark:opacity-20 dark:grayscale dark:mix-blend-screen transition-opacity">
+      <div className="pointer-events-none select-none absolute -top-12 lg:-top-16 xl:-top-20 -right-[500px] lg:-right-[580px] xl:-right-[650px] 2xl:-right-[690px] z-0 hidden lg:block opacity-60 brightness-90 dark:opacity-20 dark:brightness-100 dark:grayscale dark:mix-blend-screen transition-opacity">
         <div
           style={{ transform: "rotate(-15deg)" }}
           className="w-[660px] lg:w-[720px] xl:w-[780px] 2xl:w-[820px] drop-shadow-[5px_2px_6px_rgba(0,0,0,0.06)] drop-shadow-[21px_9px_10px_rgba(0,0,0,0.08)] drop-shadow-[48px_20px_18px_rgba(0,0,0,0.06)]"
@@ -303,7 +302,7 @@ export default function Home() {
       </div>
 
       {/* Bottom-Left: Peeking Magic Keyboard (Acctual-style corner peek) */}
-      <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block dark:opacity-20 dark:grayscale dark:mix-blend-screen transition-opacity">
+      <div className="pointer-events-none select-none absolute -bottom-10 lg:-bottom-14 xl:-bottom-16 -left-10 lg:-left-14 xl:-left-10 2xl:-left-2 z-0 hidden lg:block opacity-60 brightness-90 dark:opacity-20 dark:brightness-100 dark:grayscale dark:mix-blend-screen transition-opacity">
         <div
           className="w-[320px] lg:w-[380px] xl:w-[440px] 2xl:w-[480px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.10)]"
         >
@@ -352,7 +351,7 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   setRoute(m.id);
-                  setActiveTab("dashboard");
+                  setActiveTab("shield");
                 }}
                 className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition-all ${
                   route === m.id
