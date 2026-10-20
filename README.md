@@ -15,9 +15,9 @@ verify it yourself in 10 seconds:
 
 ```bash
 npm i && node scripts/verify-txs.mjs
-# ✅ 0x12e721f7…cacddd — SUCCEEDED · ViewingKeySet×1, Deposit×1, EncNoteCreated×1, Withdrawal×1
-# ✅ 0x57c040e1…0e8379 — SUCCEEDED · EncNoteCreated×2, Withdrawal×1
-# ✅ 0x7d4fbdc1…1a6a94 — SUCCEEDED · EncNoteCreated×2, Withdrawal×1
+# 0x12e721f7…cacddd — SUCCEEDED · ViewingKeySet×1, Deposit×1, EncNoteCreated×1, Withdrawal×1
+# 0x57c040e1…0e8379 — SUCCEEDED · EncNoteCreated×2, Withdrawal×1
+# 0x7d4fbdc1…1a6a94 — SUCCEEDED · EncNoteCreated×2, Withdrawal×1
 ```
 
 each hash also opens directly on voyager, e.g.
